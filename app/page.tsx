@@ -8,12 +8,12 @@ export default function Home() {
   return (
     <main className="min-h-screen p-10 bg-gray-100">
       <div className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow">
-        <h1 className="text-2xl font-bold mb-4">
+        <h1 className="text-2xl font-bold mb-4 text-black">
           CDA Valida – Case Analyse
         </h1>
 
         <textarea
-          className="w-full h-40 p-3 border rounded mb-4"
+          className="w-full h-40 p-3 border rounded mb-4 text-black"
           placeholder="Indsæt klage eller tekst her..."
           value={text}
           onChange={(e) => setText(e.target.value)}
