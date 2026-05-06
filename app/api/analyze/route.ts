@@ -121,9 +121,14 @@ function extractParagraffer(claims: Claim[]) {
 // 🔹 ARBEJDSGRUNDLAG (max 8 linjer)
 function extractArbejdsgrundlag(claims: Claim[]) {
   return claims
-    .filter((c) => c.type === "fakta")
-    .slice(0, 8)
-    .map((c) => c.text);
+    .filter(c =>
+      c.type === "fakta" &&
+      !c.text.toLowerCase().includes("jeg vil") &&
+      !c.text.toLowerCase().includes("jeg ønsker") &&
+      !c.text.toLowerCase().includes("på den baggrund")
+    )
+    .slice(0, 6)
+    .map(c => c.text);
 }
 
 // 🔹 ANDRE FORHOLD (max 3 linjer)
