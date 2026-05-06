@@ -124,7 +124,7 @@ function extractParagraffer(claims: Claim[]) {
 
 // 🔹 ARBEJDSGRUNDLAG (max 8 linjer)
 function extractArbejdsgrundlag(claims: Claim[]) {
-  return claims
+  const result = claims
     .filter((c) => {
       const t = c.text.toLowerCase();
 
@@ -138,22 +138,27 @@ function extractArbejdsgrundlag(claims: Claim[]) {
           t.includes("diagnose") ||
           t.includes("trivsel") ||
           t.includes("skole") ||
-          t.includes("isolerer")
+          t.includes("angst") ||
+          t.includes("adhd")
         ) &&
 
-        !t.includes("jeg") &&
-        !t.includes("vi") &&
         !t.includes("ønsk") &&
         !t.includes("revurder") &&
-        !t.includes("vurdering") &&
-        !t.includes("familie") &&
-        !t.includes("arbejde") &&
-        !t.includes("understrege") &&
-        !t.includes("ikke handler om")
+        !t.includes("vurdering")
       );
     })
     .slice(0, 5)
     .map((c) => c.text);
+
+  // 🔥 fallback hvis tom
+  if (result.length === 0) {
+    return claims
+      .filter(c => c.type === "fakta")
+      .slice(0, 2)
+      .map(c => c.text);
+  }
+
+  return result;
 }
 
 // 🔹 ANDRE FORHOLD (max 3 linjer)
