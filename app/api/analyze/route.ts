@@ -74,35 +74,33 @@ function scoreClaim(claim: Claim) {
 function extractEssens(claims: Claim[]) {
   const essens: string[] = [];
 
-  // 1. Sagstype (klage / ansøgning)
-  const sag = claims.find(c =>
-    c.text.toLowerCase().includes("klage") ||
-    c.text.toLowerCase().includes("ansøg")
+  // 1. Klage (kort)
+  const klage = claims.find(c =>
+    c.text.toLowerCase().includes("klage")
   );
-  if (sag) essens.push(sag.text);
-
-  // 2. Problem (støtte / trivsel / skole)
-  const problem = claims.find(c =>
-    c.text.toLowerCase().includes("støtte") ||
-    c.text.toLowerCase().includes("trivsel") ||
-    c.text.toLowerCase().includes("skole")
-  );
-  if (problem && !essens.includes(problem.text)) {
-    essens.push(problem.text);
+  if (klage) {
+    essens.push("Klage over afslag på støtte til barn i skole");
   }
 
-  // 3. Paragraf (kort)
-  const paragraf = claims.find(c => c.type === "paragraf");
-  if (paragraf) essens.push(paragraf.text);
-
-  // 4. Ønske (revurdering / ønsker)
-  const ønske = claims.find(c =>
-    c.text.toLowerCase().includes("ønsker") ||
-    c.text.toLowerCase().includes("revurder")
+  // 2. Problem
+  const problem = claims.find(c =>
+    c.text.toLowerCase().includes("støtte") ||
+    c.text.toLowerCase().includes("trivsel")
   );
-  if (ønske) essens.push(ønske.text);
+  if (problem) {
+    essens.push("Oplever utilstrækkelig støtte og mistrivsel");
+  }
 
-  return essens.slice(0, 5);
+  // 3. Ønske
+  const ønske = claims.find(c =>
+    c.text.toLowerCase().includes("revurder") ||
+    c.text.toLowerCase().includes("ønsker")
+  );
+  if (ønske) {
+    essens.push("Ønsker revurdering af afgørelsen");
+  }
+
+  return essens;
 }
 
 // 🔹 PARAGRAFFER (✔ ⚠️ ❌)
