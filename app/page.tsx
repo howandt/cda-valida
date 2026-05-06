@@ -37,57 +37,67 @@ export default function Home() {
         </button>
 
         {result && (
-          <div className="mt-6 space-y-6">
-
-            {/* ESSENS */}
-            {result.essens?.length > 0 && (
-              <div>
-                <h2 className="font-bold text-black mb-2">ESSENS</h2>
-                {result.essens.map((r: string, i: number) => (
-                  <div key={i} className="text-black mb-1">
-                    • {r}
-                  </div>
-                ))}
+          <>
+            {/* TYPE */}
+            {result.type && (
+              <div className="mt-6">
+                <h2 className="font-bold text-black mb-2">TYPE</h2>
+                <div className="text-purple-700">{result.type}</div>
               </div>
             )}
 
-            {/* PARAGRAFFER */}
-            {result.paragraffer?.length > 0 && (
-              <div>
-                <h2 className="font-bold text-black mb-2">PARAGRAFFER</h2>
-                {result.paragraffer.map((r: string, i: number) => (
-                  <div key={i} className="text-blue-700 mb-1">
-                    {r}
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="mt-6 space-y-6">
 
-            {/* ARBEJDSGRUNDLAG */}
-            {result.arbejdsgrundlag?.length > 0 && (
-              <div>
-                <h2 className="font-bold text-black mb-2">ARBEJDSGRUNDLAG</h2>
-                {result.arbejdsgrundlag.map((r: string, i: number) => (
-                  <div key={i} className="text-black mb-1">
-                    • {r}
-                  </div>
-                ))}
-              </div>
-            )}
+              {/* ESSENS */}
+              {result.essens?.length > 0 && (
+                <div>
+                  <h2 className="font-bold text-black mb-2">ESSENS</h2>
+                  {result.essens.map((r: string, i: number) => (
+                    <div key={i} className="text-black mb-1">
+                      • {r}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {/* ANDRE FORHOLD */}
-            {result.andreForhold?.length > 0 && (
-              <div>
-                <h2 className="font-bold text-black mb-2">ANDRE FORHOLD</h2>
-                {result.andreForhold.map((r: string, i: number) => (
-                  <div key={i} className="text-gray-600 mb-1">
-                    • {r}
-                  </div>
-                ))}
-              </div>
-            )}
+              {/* PARAGRAFFER */}
+              {result.paragraffer?.length > 0 && (
+                <div>
+                  <h2 className="font-bold text-black mb-2">PARAGRAFFER</h2>
+                  {result.paragraffer.map((r: string, i: number) => (
+                    <div key={i} className="text-blue-700 mb-1">
+                      {r}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-          </div>
+              {/* ARBEJDSGRUNDLAG */}
+              {result.arbejdsgrundlag?.length > 0 && (
+                <div>
+                  <h2 className="font-bold text-black mb-2">ARBEJDSGRUNDLAG</h2>
+                  {result.arbejdsgrundlag.map((r: string, i: number) => (
+                    <div key={i} className="text-black mb-1">
+                      • {r}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ANDRE FORHOLD */}
+              {result.andreForhold?.length > 0 && (
+                <div>
+                  <h2 className="font-bold text-black mb-2">ANDRE FORHOLD</h2>
+                  {result.andreForhold.map((r: string, i: number) => (
+                    <div key={i} className="text-gray-600 mb-1">
+                      • {r}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+            </div>
+          </>
         )}
       </div>
     </main>
