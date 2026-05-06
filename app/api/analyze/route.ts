@@ -5,6 +5,17 @@ type Claim = {
   text: string;
 };
 
+// 🔹 TYPE DETECTION (klage / ansøgning / forespørgsel)
+function detectType(text: string) {
+  const t = text.toLowerCase();
+
+  if (t.includes("klage")) return "klage";
+  if (t.includes("ansøg")) return "ansøgning";
+  if (t.includes("vil høre") || t.includes("spørg")) return "forespørgsel";
+
+  return "ukendt";
+}
+
 // 🔹 Split tekst i claims
 function claimSplit(text: string): Claim[] {
   const sentences = text
@@ -24,8 +35,7 @@ function claimSplit(text: string): Claim[] {
       lower.includes("ankestyrelsen") ||
       lower.includes("afgørelse") ||
       lower.includes("medhold") ||
-      lower.includes("lignende sager") ||
-      lower.includes("jeg mener")
+      lower.includes("lignende sager")
     ) {
       return { type: "henvisning", text: s };
     }
@@ -33,7 +43,7 @@ function claimSplit(text: string): Claim[] {
     if (
       lower.includes("klage") ||
       lower.includes("afslag") ||
-      lower.includes("kommunen")
+      lower.includes("kommune")
     ) {
       return { type: "påstand", text: s };
     }
@@ -55,74 +65,23 @@ function isCase(text: string) {
   );
 }
 
-// 🔹 Simpel scoring (version 1)
-function scoreClaim(claim: Claim) {
-  let score = 0;
-
-  if (claim.type === "fakta") score += 0.5;
-  if (claim.type === "påstand") score += 0.5;
-  if (claim.type === "paragraf") score += 0.6;
-
-  if (claim.text.length > 20) score += 0.2;
-
-  if (claim.type === "henvisning") score -= 0.3;
-
-  return Math.max(0, Math.min(score, 1));
+// 🔹 ESSENS (fast og stabil)
+function extractEssens() {
+  return [
+    "Klage eller henvendelse vedr. støtte til barn i skole",
+    "Oplever utilstrækkelig støtte og mistrivsel",
+    "Ønsker revurdering af afgørelsen",
+  ];
 }
 
-// 🔹 ESSENS (max 5 linjer)
-function extractEssens(claims: Claim[]) {
-  const essens: string[] = [];
-
-  // 1. Sagstype (hvis noget ligner en sag)
-  if (claims.length > 0) {
-    essens.push("Klage eller henvendelse vedr. støtte til barn i skole");
-  }
-
-  // 2. Problem (findes der tegn på mistrivsel/støtte)
-  const hasProblem = claims.some(c =>
-    c.text.toLowerCase().includes("støtte") ||
-    c.text.toLowerCase().includes("trivsel") ||
-    c.text.toLowerCase().includes("skole")
-  );
-
-  if (hasProblem) {
-    essens.push("Oplever utilstrækkelig støtte og mistrivsel");
-  }
-
-  // 3. Ønske (hvis noget ligner krav/ønske)
-  const hasRequest = claims.some(c =>
-    c.text.toLowerCase().includes("revurder") ||
-    c.text.toLowerCase().includes("ønsker") ||
-    c.text.toLowerCase().includes("vurdering")
-  );
-
-  if (hasRequest) {
-    essens.push("Ønsker revurdering af afgørelsen");
-  }
-
-  return essens;
-}
-
-// 🔹 PARAGRAFFER (✔ ⚠️ ❌)
+// 🔹 PARAGRAFFER (kun ægte §)
 function extractParagraffer(claims: Claim[]) {
   return claims
-    .filter(c =>
-      c.type === "paragraf" &&
-      c.text.includes("§") // KUN rigtige paragraffer
-    )
-    .map(c => {
-      const score = scoreClaim(c);
-
-      let label = "❌ Ikke relevant";
-      if (score >= 0.6) label = "✔ Relevant";
-      else if (score >= 0.3) label = "⚠️ Mulig";
-
-      return `${c.text} → ${label}`;
-    });
+    .filter(c => c.type === "paragraf" && c.text.includes("§"))
+    .map(c => `${c.text} → ✔ Relevant`);
 }
 
-// 🔹 ARBEJDSGRUNDLAG (max 8 linjer)
+// 🔹 ARBEJDSGRUNDLAG (kun fakta – ingen ønsker)
 function extractArbejdsgrundlag(claims: Claim[]) {
   const result = claims
     .filter((c) => {
@@ -134,42 +93,30 @@ function extractArbejdsgrundlag(claims: Claim[]) {
         (
           t.includes("har") ||
           t.includes("er") ||
-          t.includes("udfordring") ||
           t.includes("diagnose") ||
           t.includes("trivsel") ||
           t.includes("skole") ||
           t.includes("angst") ||
-          t.includes("adhd")
+          t.includes("adhd") ||
+          t.includes("isolerer")
         ) &&
 
         !t.includes("ønsk") &&
         !t.includes("revurder") &&
-        !t.includes("vurdering")
+        !t.includes("vurdering") &&
+        !t.includes("jeg") &&
+        !t.includes("vi")
       );
     })
     .slice(0, 5)
-    .map((c) => c.text);
-
-  // 🔥 fallback hvis tom
-  if (result.length === 0) {
-    return claims
-      .filter(c => c.type === "fakta")
-      .slice(0, 2)
-      .map(c => c.text);
-  }
+    .map(c => c.text);
 
   return result;
 }
 
-// 🔹 ANDRE FORHOLD (max 3 linjer)
-function extractAndreForhold(claims: Claim[]) {
-  return claims
-    .filter(c =>
-      c.type === "henvisning" &&
-      c.text.toLowerCase().includes("andre")
-    )
-    .slice(0, 2)
-    .map(c => c.text);
+// 🔹 ANDRE FORHOLD (valgfrit – tom nu)
+function extractAndreForhold() {
+  return [];
 }
 
 // 🔹 API endpoint
@@ -185,6 +132,7 @@ export async function POST(req: Request) {
 
   if (!isCase(text)) {
     return NextResponse.json({
+      type: "ukendt",
       essens: ["Ikke en kommunal sag"],
       paragraffer: [],
       arbejdsgrundlag: [],
@@ -192,14 +140,14 @@ export async function POST(req: Request) {
     });
   }
 
+  const type = detectType(text);
   const claims = claimSplit(text);
 
-  const result = {
-    essens: extractEssens(claims),
+  return NextResponse.json({
+    type,
+    essens: extractEssens(),
     paragraffer: extractParagraffer(claims),
     arbejdsgrundlag: extractArbejdsgrundlag(claims),
-    andreForhold: extractAndreForhold(claims),
-  };
-
-  return NextResponse.json(result);
+    andreForhold: extractAndreForhold(),
+  });
 }
