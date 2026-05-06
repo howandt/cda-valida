@@ -46,15 +46,11 @@ function claimSplit(text: string): Claim[] {
     }
 
     if (
-      lower.includes("klage") ||
-      lower.includes("afslag") ||
-      lower.includes("kommune")
-    ) {
-      return { type: "påstand", text: s };
-    }
-
-    return { type: "fakta", text: s };
-  });
+  lower.includes("klage") ||
+  lower.includes("jeg klager")
+) {
+  return { type: "påstand", text: s };
+});
 }
 
 // 🔹 Tjek om det er en relevant sag
