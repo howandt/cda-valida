@@ -74,28 +74,31 @@ function scoreClaim(claim: Claim) {
 function extractEssens(claims: Claim[]) {
   const essens: string[] = [];
 
-  // 1. Klage / sagstype
-  const klage = claims.find(c =>
+  // 1. Sagstype (klage / ansøgning)
+  const sag = claims.find(c =>
     c.text.toLowerCase().includes("klage") ||
     c.text.toLowerCase().includes("ansøg")
   );
-  if (klage) essens.push(klage.text);
+  if (sag) essens.push(sag.text);
 
-  // 2. Problem
+  // 2. Problem (støtte / trivsel / skole)
   const problem = claims.find(c =>
     c.text.toLowerCase().includes("støtte") ||
     c.text.toLowerCase().includes("trivsel") ||
-    c.text.toLowerCase().includes("problemer")
+    c.text.toLowerCase().includes("skole")
   );
-  if (problem) essens.push(problem.text);
+  if (problem && !essens.includes(problem.text)) {
+    essens.push(problem.text);
+  }
 
   // 3. Paragraf (kort)
   const paragraf = claims.find(c => c.type === "paragraf");
   if (paragraf) essens.push(paragraf.text);
 
-  // 4. Ønske
+  // 4. Ønske (revurdering / ønsker)
   const ønske = claims.find(c =>
-    c.text.toLowerCase().includes("ønsker")
+    c.text.toLowerCase().includes("ønsker") ||
+    c.text.toLowerCase().includes("revurder")
   );
   if (ønske) essens.push(ønske.text);
 
