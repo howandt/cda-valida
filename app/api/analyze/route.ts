@@ -74,34 +74,30 @@ function scoreClaim(claim: Claim) {
 function extractEssens(claims: Claim[]) {
   const essens: string[] = [];
 
-  // 1. Sagstype (klage / afslag / ansøgning)
-  const sag = claims.find(c =>
-    c.text.toLowerCase().includes("klage") ||
-    c.text.toLowerCase().includes("afslag") ||
-    c.text.toLowerCase().includes("ansøg")
-  );
-
-  if (sag) {
-    essens.push("Klage over afslag på støtte til barn i skole");
+  // 1. Sagstype (hvis noget ligner en sag)
+  if (claims.length > 0) {
+    essens.push("Klage eller henvendelse vedr. støtte til barn i skole");
   }
 
-  // 2. Problem
-  const problem = claims.find(c =>
+  // 2. Problem (findes der tegn på mistrivsel/støtte)
+  const hasProblem = claims.some(c =>
     c.text.toLowerCase().includes("støtte") ||
-    c.text.toLowerCase().includes("trivsel")
+    c.text.toLowerCase().includes("trivsel") ||
+    c.text.toLowerCase().includes("skole")
   );
 
-  if (problem) {
+  if (hasProblem) {
     essens.push("Oplever utilstrækkelig støtte og mistrivsel");
   }
 
-  // 3. Ønske
-  const ønske = claims.find(c =>
+  // 3. Ønske (hvis noget ligner krav/ønske)
+  const hasRequest = claims.some(c =>
     c.text.toLowerCase().includes("revurder") ||
-    c.text.toLowerCase().includes("ønsker")
+    c.text.toLowerCase().includes("ønsker") ||
+    c.text.toLowerCase().includes("vurdering")
   );
 
-  if (ønske) {
+  if (hasRequest) {
     essens.push("Ønsker revurdering af afgørelsen");
   }
 
