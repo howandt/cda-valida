@@ -138,16 +138,17 @@ function extractArbejdsgrundlag(claims: Claim[]) {
           t.includes("udfordring") ||
           t.includes("diagnose") ||
           t.includes("trivsel") ||
-          t.includes("skole")
+          t.includes("skole") ||
+          t.includes("isolerer")
         ) &&
 
-        // fjern følelser og fortælling
-        !t.includes("jeg føler") &&
-        !t.includes("jeg skriver") &&
-        !t.includes("vi oplever") &&
-        !t.includes("jeg har forsøgt") &&
-        !t.includes("ansvaret bliver") &&
-        !t.includes("vi har gjort opmærksom")
+        // fjern følelser / familiebelastning / forklaring
+        !t.includes("jeg") &&
+        !t.includes("vi") &&
+        !t.includes("familie") &&
+        !t.includes("arbejde") &&
+        !t.includes("understrege") &&
+        !t.includes("ikke handler om")
       );
     })
     .slice(0, 5)
