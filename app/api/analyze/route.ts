@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 
 type ClaimType =
+  | "fakta"
+  | "belastning"
+  | "ønske"
   | "paragraf"
   | "henvisning"
-  | "ønske"
-  | "belastning"
-  | "fakta"
   | "emotion"
+  | "meta"
   | "uklar";
 
 type Claim = {
@@ -16,7 +17,7 @@ type Claim = {
 
 function splitSentences(text: string) {
   return text
-    .split(/[\n\.]+/)
+    .split(/\n|(?<=[.!?])\s+/)
     .map((s) => s.trim())
     .filter(Boolean);
 }
@@ -24,12 +25,29 @@ function splitSentences(text: string) {
 function classifyClaim(sentence: string): Claim {
   const t = sentence.toLowerCase();
 
+  // 🔹 META / AI-STØJ / STRATEGI
+  if (
+    t.includes("jeg har hørt") ||
+    t.includes("jeg har fået at vide") ||
+    t.includes("facebook-gruppe") ||
+    t.includes("chatgpt") ||
+    t.includes("hvordan skal jeg skrive") ||
+    t.includes("bedre chance for et ja") ||
+    t.includes("hvordan kan jeg være sikker")
+  ) {
+    return {
+      type: "meta",
+      text: sentence,
+    };
+  }
+
   // 🔹 PARAGRAF
   if (
     t.includes("§") ||
     t.includes("serviceloven") ||
     t.includes("barnets lov") ||
-    t.includes("forvaltningslov")
+    t.includes("forvaltningslov") ||
+    t.includes("retssikkerhedsloven")
   ) {
     return {
       type: "paragraf",
@@ -37,11 +55,12 @@ function classifyClaim(sentence: string): Claim {
     };
   }
 
-  // 🔹 HENVISNING
+  // 🔹 HENVISNINGER
   if (
-    t.includes("ankestyrelsen") ||
     t.includes("ombudsmand") ||
-    t.includes("principafgørelse")
+    t.includes("ankestyrelsen") ||
+    t.includes("principafgørelse") ||
+    t.includes("domspraksis")
   ) {
     return {
       type: "henvisning",
@@ -49,17 +68,17 @@ function classifyClaim(sentence: string): Claim {
     };
   }
 
-  // 🔹 ØNSKER
+  // 🔹 ØNSKER / ANMODNINGER
   if (
-  t.includes("jeg ønsker") ||
-  t.includes("vi ønsker") ||
-  t.includes("håber") ||
-  t.includes("ansøger") ||
-  t.includes("har brug for hjælp") ||
-  t.includes("vurdering af") ||
-  t.includes("muligheder for") ||
-  t.includes("hjælp til")
-) {
+    t.includes("jeg ønsker") ||
+    t.includes("vi ønsker") ||
+    t.includes("jeg vil gerne") ||
+    t.includes("anmoder om") ||
+    t.includes("søger hjælp") ||
+    t.includes("hjælp til") ||
+    t.includes("vurdering af") ||
+    t.includes("muligheder for")
+  ) {
     return {
       type: "ønske",
       text: sentence,
@@ -68,12 +87,14 @@ function classifyClaim(sentence: string): Claim {
 
   // 🔹 BELASTNING
   if (
-    t.includes("kan ikke overskue") ||
-    t.includes("mistet arbejde") ||
     t.includes("sover dårligt") ||
     t.includes("græder") ||
+    t.includes("udmattet") ||
     t.includes("belastet") ||
-    t.includes("udmattet")
+    t.includes("mistet arbejde") ||
+    t.includes("ikke holde ud") ||
+    t.includes("i alarmberedskab") ||
+    t.includes("påvirker hele familien")
   ) {
     return {
       type: "belastning",
@@ -81,35 +102,37 @@ function classifyClaim(sentence: string): Claim {
     };
   }
 
-  // 🔹 FAKTA
+  // 🔹 EMOTION
   if (
-    t.includes("skole") ||
-    t.includes("barn") ||
-    t.includes("datter") ||
-    t.includes("søn") ||
-    t.includes("adhd") ||
-    t.includes("autisme") ||
-    t.includes("angst") ||
-    t.includes("fravær") ||
-    t.includes("ppr") ||
-    t.includes("støtte")
+    t.includes("jeg føler") ||
+    t.includes("jeg er træt") ||
+    t.includes("ingen lytter") ||
+    t.includes("frustreret") ||
+    t.includes("jeg er bange")
   ) {
     return {
-      type: "fakta",
+      type: "emotion",
       text: sentence,
     };
   }
 
-  // 🔹 EMOTION
+  // 🔹 FAKTA
   if (
-    t.includes("føler") ||
-    t.includes("træt") ||
-    t.includes("ingen lytter") ||
-    t.includes("helt ødelagt") ||
-    t.includes("frustreret")
+    t.includes("adhd") ||
+    t.includes("autisme") ||
+    t.includes("angst") ||
+    t.includes("skole") ||
+    t.includes("fravær") ||
+    t.includes("ppr") ||
+    t.includes("søn") ||
+    t.includes("datter") ||
+    t.includes("barn") ||
+    t.includes("støtte") ||
+    t.includes("udbrud") ||
+    t.includes("affekt")
   ) {
     return {
-      type: "emotion",
+      type: "fakta",
       text: sentence,
     };
   }
@@ -124,22 +147,26 @@ function claimSplit(text: string): Claim[] {
   return splitSentences(text).map(classifyClaim);
 }
 
-function detectType(text: string) {
-  const t = text.toLowerCase();
+function detectType(claims: Claim[]) {
+  const hasØnske = claims.some(
+    (c) => c.type === "ønske"
+  );
 
-  const hasKlage =
-    t.includes("klage") ||
-    t.includes("revurdering") ||
-    t.includes("afslag");
+  const hasBelastning = claims.some(
+    (c) => c.type === "belastning"
+  );
 
-  const hasAnsøgning =
-    t.includes("ansøg") ||
-    t.includes("søger støtte") ||
-    t.includes("ønsker hjælp");
+  const hasParagraffer = claims.some(
+    (c) => c.type === "paragraf"
+  );
 
-  if (hasKlage && hasAnsøgning) return "blandet";
-  if (hasKlage) return "klage";
-  if (hasAnsøgning) return "ansøgning";
+  if (hasØnske && hasParagraffer) {
+    return "ansøgning";
+  }
+
+  if (hasBelastning && hasParagraffer) {
+    return "klage";
+  }
 
   return "uklar";
 }
@@ -147,7 +174,9 @@ function detectType(text: string) {
 function extractEssens(claims: Claim[]) {
   const result: string[] = [];
 
-  const fakta = claims.filter((c) => c.type === "fakta");
+  const fakta = claims.filter(
+    (c) => c.type === "fakta"
+  );
 
   const belastning = claims.filter(
     (c) => c.type === "belastning"
@@ -159,19 +188,19 @@ function extractEssens(claims: Claim[]) {
 
   if (fakta.length > 0) {
     result.push(
-      "Sagen indeholder oplysninger om barn/familie og støttebehov"
+      "Sagen indeholder konkrete oplysninger om barn/familie"
     );
   }
 
   if (belastning.length > 0) {
     result.push(
-      "Der beskrives betydelig belastning og mistrivsel"
+      "Der beskrives belastning og mistrivsel"
     );
   }
 
   if (ønsker.length > 0) {
     result.push(
-      "Der efterspørges hjælp eller støtte"
+      "Der anmodes om hjælp eller støtte"
     );
   }
 
@@ -182,6 +211,13 @@ function extractEssens(claims: Claim[]) {
   }
 
   return result;
+}
+
+function extractKerneData(claims: Claim[]) {
+  return claims
+    .filter((c) => c.type === "fakta")
+    .slice(0, 6)
+    .map((c) => c.text);
 }
 
 function extractParagraffer(claims: Claim[]) {
@@ -197,7 +233,7 @@ function extractArbejdsgrundlag(claims: Claim[]) {
         c.type === "fakta" ||
         c.type === "belastning"
     )
-    .slice(0, 8)
+    .slice(0, 10)
     .map((c) => c.text);
 }
 
@@ -206,16 +242,10 @@ function extractAndreForhold(claims: Claim[]) {
     .filter(
       (c) =>
         c.type === "emotion" ||
+        c.type === "meta" ||
         c.type === "uklar"
     )
-    .slice(0, 5)
-    .map((c) => c.text);
-}
-
-function extractKerneData(claims: Claim[]) {
-  return claims
-    .filter((c) => c.type === "fakta")
-    .slice(0, 5)
+    .slice(0, 8)
     .map((c) => c.text);
 }
 
@@ -234,7 +264,7 @@ export async function POST(req: Request) {
   const claims = claimSplit(text);
 
   return NextResponse.json({
-    type: detectType(text),
+    type: detectType(claims),
     essens: extractEssens(claims),
     kerneData: extractKerneData(claims),
     paragraffer: extractParagraffer(claims),
