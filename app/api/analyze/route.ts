@@ -5,6 +5,7 @@ type Claim = {
   text: string;
 };
 
+// 🔹 Split tekst i claims
 function claimSplit(text: string): Claim[] {
   const sentences = text
     .split(/[\n\.]+/)
@@ -31,7 +32,7 @@ function claimSplit(text: string): Claim[] {
 
     if (
       lower.includes("klage") ||
-      lower.includes("afvist") ||
+      lower.includes("afslag") ||
       lower.includes("kommunen")
     ) {
       return { type: "påstand", text: s };
@@ -41,6 +42,7 @@ function claimSplit(text: string): Claim[] {
   });
 }
 
+// 🔹 Tjek om det er en relevant sag
 function isCase(text: string) {
   const lower = text.toLowerCase();
   return (
@@ -53,6 +55,7 @@ function isCase(text: string) {
   );
 }
 
+// 🔹 Simpel scoring (version 1)
 function scoreClaim(claim: Claim) {
   let score = 0;
 
@@ -67,40 +70,73 @@ function scoreClaim(claim: Claim) {
   return Math.max(0, Math.min(score, 1));
 }
 
-function buildOutput(claims: Claim[]) {
-  const relevant: any[] = [];
-  const notRelevant: any[] = [];
-  const uncertain: any[] = [];
-
-  claims.forEach((c) => {
-    const score = scoreClaim(c);
-
-    const item = {
-      text: c.text,
-      score: score.toFixed(2),
-    };
-
-    if (score >= 0.6) relevant.push(item);
-    else if (score >= 0.3) uncertain.push(item);
-    else notRelevant.push(item);
-  });
-
-  return { relevant, notRelevant, uncertain };
+// 🔹 ESSENS (max 5 linjer)
+function extractEssens(claims: Claim[]) {
+  return claims
+    .filter((c) => c.type === "påstand" || c.type === "fakta")
+    .slice(0, 5)
+    .map((c) => c.text);
 }
 
+// 🔹 PARAGRAFFER (✔ ⚠️ ❌)
+function extractParagraffer(claims: Claim[]) {
+  return claims
+    .filter((c) => c.type === "paragraf")
+    .map((c) => {
+      const score = scoreClaim(c);
+
+      let label = "❌ Ikke relevant";
+      if (score >= 0.6) label = "✔ Relevant";
+      else if (score >= 0.3) label = "⚠️ Mulig";
+
+      return `${c.text} → ${label}`;
+    });
+}
+
+// 🔹 ARBEJDSGRUNDLAG (max 8 linjer)
+function extractArbejdsgrundlag(claims: Claim[]) {
+  return claims
+    .filter((c) => c.type === "fakta")
+    .slice(0, 8)
+    .map((c) => c.text);
+}
+
+// 🔹 ANDRE FORHOLD (max 3 linjer)
+function extractAndreForhold(claims: Claim[]) {
+  return claims
+    .filter((c) => c.type === "henvisning")
+    .slice(0, 3)
+    .map((c) => c.text);
+}
+
+// 🔹 API endpoint
 export async function POST(req: Request) {
   const { text } = await req.json();
 
+  if (!text || typeof text !== "string") {
+    return NextResponse.json(
+      { error: "Ingen tekst modtaget" },
+      { status: 400 }
+    );
+  }
+
   if (!isCase(text)) {
     return NextResponse.json({
-      relevant: [],
-      notRelevant: [{ text: "Ikke en kommunal sag", score: "1.00" }],
-      uncertain: [],
+      essens: ["Ikke en kommunal sag"],
+      paragraffer: [],
+      arbejdsgrundlag: [],
+      andreForhold: [],
     });
   }
 
   const claims = claimSplit(text);
-  const result = buildOutput(claims);
+
+  const result = {
+    essens: extractEssens(claims),
+    paragraffer: extractParagraffer(claims),
+    arbejdsgrundlag: extractArbejdsgrundlag(claims),
+    andreForhold: extractAndreForhold(claims),
+  };
 
   return NextResponse.json(result);
 }
