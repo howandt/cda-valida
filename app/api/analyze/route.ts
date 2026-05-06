@@ -125,14 +125,31 @@ function extractParagraffer(claims: Claim[]) {
 // 🔹 ARBEJDSGRUNDLAG (max 8 linjer)
 function extractArbejdsgrundlag(claims: Claim[]) {
   return claims
-    .filter(c =>
-      c.type === "fakta" &&
-      !c.text.toLowerCase().includes("ønsker") &&
-      !c.text.toLowerCase().includes("revurder") &&
-      !c.text.toLowerCase().includes("vurdering") &&
-      !c.text.toLowerCase().includes("på den baggrund") &&
-      !c.text.toLowerCase().includes("jeg vil")
-    )
+    .filter(c => {
+      const t = c.text.toLowerCase();
+
+      return (
+        c.type === "fakta" &&
+
+        // behold kun konkrete forhold
+        (
+          t.includes("har") ||
+          t.includes("er") ||
+          t.includes("udfordring") ||
+          t.includes("diagnose") ||
+          t.includes("trivsel") ||
+          t.includes("skole")
+        ) &&
+
+        // fjern følelser og fortælling
+        !t.includes("jeg føler") &&
+        !t.includes("jeg skriver") &&
+        !t.includes("vi oplever") &&
+        !t.includes("jeg har forsøgt") &&
+        !t.includes("ansvaret bliver") &&
+        !t.includes("vi har gjort opmærksom")
+      );
+    })
     .slice(0, 5)
     .map(c => c.text);
 }
