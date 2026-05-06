@@ -147,7 +147,7 @@ function extractArbejdsgrundlag(claims: Claim[]) {
         !t.includes("vi") &&
         !t.includes("ønsk") &&
         !t.includes("revurder") &&
-        !t.includes("vurdering")
+        !t.includes("vurdering") &&
         !t.includes("familie") &&
         !t.includes("arbejde") &&
         !t.includes("understrege") &&
