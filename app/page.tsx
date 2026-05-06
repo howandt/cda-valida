@@ -25,9 +25,7 @@ export default function Home() {
           onClick={async () => {
             const res = await fetch("/api/analyze", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ text }),
             });
 
@@ -39,44 +37,59 @@ export default function Home() {
         </button>
 
         {result && (
-          <div className="mt-6">
-            {result.relevant.length > 0 && (
-              <>
-                <h2 className="font-bold mb-2 text-black">Relevant</h2>
-                {result.relevant.map((r: any, i: number) => (
-                  <div key={i} className="text-green-700 mb-1">
-                    {r.text}
+          <div className="mt-6 space-y-6">
+
+            {/* ESSENS */}
+            {result.essens?.length > 0 && (
+              <div>
+                <h2 className="font-bold text-black mb-2">ESSENS</h2>
+                {result.essens.map((r: string, i: number) => (
+                  <div key={i} className="text-black mb-1">
+                    • {r}
                   </div>
                 ))}
-              </>
+              </div>
             )}
 
-            {result.notRelevant.length > 0 && (
-              <>
-                <h2 className="font-bold mt-4 mb-2 text-black">
-                  Ikke relevant
-                </h2>
-                {result.notRelevant.map((r: any, i: number) => (
-                  <div key={i} className="text-red-700 mb-1">
-                    {r.text}
+            {/* PARAGRAFFER */}
+            {result.paragraffer?.length > 0 && (
+              <div>
+                <h2 className="font-bold text-black mb-2">PARAGRAFFER</h2>
+                {result.paragraffer.map((r: string, i: number) => (
+                  <div key={i} className="text-blue-700 mb-1">
+                    {r}
                   </div>
                 ))}
-              </>
+              </div>
             )}
 
-            {result.uncertain.length > 0 && (
-              <>
-                <h2 className="font-bold mt-4 mb-2 text-black">Usikker</h2>
-                {result.uncertain.map((r: any, i: number) => (
-                  <div key={i} className="text-yellow-700 mb-1">
-                    {r.text}
+            {/* ARBEJDSGRUNDLAG */}
+            {result.arbejdsgrundlag?.length > 0 && (
+              <div>
+                <h2 className="font-bold text-black mb-2">ARBEJDSGRUNDLAG</h2>
+                {result.arbejdsgrundlag.map((r: string, i: number) => (
+                  <div key={i} className="text-black mb-1">
+                    • {r}
                   </div>
                 ))}
-              </>
+              </div>
             )}
+
+            {/* ANDRE FORHOLD */}
+            {result.andreForhold?.length > 0 && (
+              <div>
+                <h2 className="font-bold text-black mb-2">ANDRE FORHOLD</h2>
+                {result.andreForhold.map((r: string, i: number) => (
+                  <div key={i} className="text-gray-600 mb-1">
+                    • {r}
+                  </div>
+                ))}
+              </div>
+            )}
+
           </div>
         )}
       </div>
     </main>
   );
-} 
+}
