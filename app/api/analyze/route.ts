@@ -72,10 +72,34 @@ function scoreClaim(claim: Claim) {
 
 // 🔹 ESSENS (max 5 linjer)
 function extractEssens(claims: Claim[]) {
-  return claims
-    .filter((c) => c.type === "påstand" || c.type === "fakta")
-    .slice(0, 5)
-    .map((c) => c.text);
+  const essens: string[] = [];
+
+  // 1. Klage / sagstype
+  const klage = claims.find(c =>
+    c.text.toLowerCase().includes("klage") ||
+    c.text.toLowerCase().includes("ansøg")
+  );
+  if (klage) essens.push(klage.text);
+
+  // 2. Problem
+  const problem = claims.find(c =>
+    c.text.toLowerCase().includes("støtte") ||
+    c.text.toLowerCase().includes("trivsel") ||
+    c.text.toLowerCase().includes("problemer")
+  );
+  if (problem) essens.push(problem.text);
+
+  // 3. Paragraf (kort)
+  const paragraf = claims.find(c => c.type === "paragraf");
+  if (paragraf) essens.push(paragraf.text);
+
+  // 4. Ønske
+  const ønske = claims.find(c =>
+    c.text.toLowerCase().includes("ønsker")
+  );
+  if (ønske) essens.push(ønske.text);
+
+  return essens.slice(0, 5);
 }
 
 // 🔹 PARAGRAFFER (✔ ⚠️ ❌)
