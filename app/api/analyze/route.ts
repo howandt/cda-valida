@@ -184,6 +184,7 @@ export async function POST(req: Request) {
 
   const type = detectType(text);
   const claims = claimSplit(text);
+  console.log(claims);
 
   return NextResponse.json({
     type,
