@@ -74,11 +74,14 @@ function scoreClaim(claim: Claim) {
 function extractEssens(claims: Claim[]) {
   const essens: string[] = [];
 
-  // 1. Klage (kort)
-  const klage = claims.find(c =>
-    c.text.toLowerCase().includes("klage")
+  // 1. Sagstype (klage / afslag / ansøgning)
+  const sag = claims.find(c =>
+    c.text.toLowerCase().includes("klage") ||
+    c.text.toLowerCase().includes("afslag") ||
+    c.text.toLowerCase().includes("ansøg")
   );
-  if (klage) {
+
+  if (sag) {
     essens.push("Klage over afslag på støtte til barn i skole");
   }
 
@@ -87,6 +90,7 @@ function extractEssens(claims: Claim[]) {
     c.text.toLowerCase().includes("støtte") ||
     c.text.toLowerCase().includes("trivsel")
   );
+
   if (problem) {
     essens.push("Oplever utilstrækkelig støtte og mistrivsel");
   }
@@ -96,6 +100,7 @@ function extractEssens(claims: Claim[]) {
     c.text.toLowerCase().includes("revurder") ||
     c.text.toLowerCase().includes("ønsker")
   );
+
   if (ønske) {
     essens.push("Ønsker revurdering af afgørelsen");
   }
