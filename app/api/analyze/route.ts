@@ -128,17 +128,26 @@ function extractKerneData(claims: Claim[]) {
         c.type === "fakta" &&
 
         (
+          // barn / person
           t.includes("barn") ||
           t.includes("søn") ||
           t.includes("datter") ||
-          t.includes("elev") ||
+
+          // skole / trivsel
           t.includes("skole") ||
           t.includes("trivsel") ||
+          t.includes("undervisning") ||
+
+          // udfordringer
+          t.includes("udfordring") ||
           t.includes("problemer") ||
-          t.includes("udfordringer") ||
-          t.includes("diagnose") ||
-          t.includes("adhd") ||
-          t.includes("angst")
+          t.includes("overvældet") ||
+          t.includes("trækker sig") ||
+
+          // systemforløb
+          t.includes("afslag") ||
+          t.includes("forsøgt") ||
+          t.includes("ppr")
         )
       );
     })
