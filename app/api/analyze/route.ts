@@ -125,13 +125,12 @@ function extractParagraffer(claims: Claim[]) {
 // 🔹 ARBEJDSGRUNDLAG (max 8 linjer)
 function extractArbejdsgrundlag(claims: Claim[]) {
   return claims
-    .filter(c => {
+    .filter((c) => {
       const t = c.text.toLowerCase();
 
       return (
         c.type === "fakta" &&
 
-        // behold kun konkrete forhold
         (
           t.includes("har") ||
           t.includes("er") ||
@@ -142,7 +141,6 @@ function extractArbejdsgrundlag(claims: Claim[]) {
           t.includes("isolerer")
         ) &&
 
-        // fjern følelser / familiebelastning / forklaring
         !t.includes("jeg") &&
         !t.includes("vi") &&
         !t.includes("ønsk") &&
@@ -155,7 +153,7 @@ function extractArbejdsgrundlag(claims: Claim[]) {
       );
     })
     .slice(0, 5)
-    .map(c => c.text);
+    .map((c) => c.text);
 }
 
 // 🔹 ANDRE FORHOLD (max 3 linjer)
