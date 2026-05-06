@@ -182,7 +182,6 @@ let currentContext: ClaimType | null = null;
 for (const line of lines) {
 const claim = classifyClaim(line);
 
-```
 // 🔹 Listepunkter arver kontekst
 if (
   isListFragment(line) &&
@@ -202,7 +201,6 @@ if (claim.type !== "uklar") {
 }
 
 claims.push(claim);
-```
 
 }
 
@@ -313,7 +311,22 @@ c.type === "henvisning"
 }
 
 export async function POST(req: Request) {
-const { text } = await req.json();
+let body;
+
+try {
+  body = await req.json();
+} catch (error) {
+  return NextResponse.json(
+    {
+      error: "Ugyldig JSON",
+    },
+    {
+      status: 400,
+    }
+  );
+}
+
+const text = body?.text;
 
 if (!text || typeof text !== "string") {
 return NextResponse.json(
