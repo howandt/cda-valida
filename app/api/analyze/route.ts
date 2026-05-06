@@ -114,6 +114,28 @@ function extractArbejdsgrundlag(claims: Claim[]) {
   return result;
 }
 
+function extractKerneData(claims: Claim[]) {
+  return claims
+    .filter(c => {
+      const t = c.text.toLowerCase();
+
+      return (
+        c.type === "fakta" &&
+        (
+          t.includes("adhd") ||
+          t.includes("angst") ||
+          t.includes("diagnose") ||
+          t.includes("trivsel") ||
+          t.includes("skole") ||
+          t.includes("fravær") ||
+          t.includes("udfordring")
+        )
+      );
+    })
+    .slice(0, 3)
+    .map(c => c.text);
+}
+
 // 🔹 ANDRE FORHOLD (valgfrit – tom nu)
 function extractAndreForhold() {
   return [];
@@ -132,12 +154,13 @@ export async function POST(req: Request) {
 
   if (!isCase(text)) {
     return NextResponse.json({
-      type: "ukendt",
-      essens: ["Ikke en kommunal sag"],
-      paragraffer: [],
-      arbejdsgrundlag: [],
-      andreForhold: [],
-    });
+  type,
+  essens: extractEssens(),
+  kerneData: extractKerneData(claims),   // ← NY LINJE
+  paragraffer: extractParagraffer(claims),
+  arbejdsgrundlag: extractArbejdsgrundlag(claims),
+  andreForhold: extractAndreForhold(),
+});
   }
 
   const type = detectType(text);
