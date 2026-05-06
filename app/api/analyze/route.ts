@@ -45,12 +45,16 @@ function claimSplit(text: string): Claim[] {
       return { type: "henvisning", text: s };
     }
 
+    // 🔴 KUN ren klage = påstand
     if (
-  lower.includes("klage") ||
-  lower.includes("jeg klager")
-) {
-  return { type: "påstand", text: s };
-});
+      lower.includes("jeg klager") ||
+      lower.includes("klage over")
+    ) {
+      return { type: "påstand", text: s };
+    }
+
+    return { type: "fakta", text: s };
+  });
 }
 
 // 🔹 Tjek om det er en relevant sag
