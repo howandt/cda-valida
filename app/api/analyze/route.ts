@@ -121,14 +121,19 @@ function extractKerneData(claims: Claim[]) {
 
       return (
         c.type === "fakta" &&
+
         (
-          t.includes("adhd") ||
-          t.includes("angst") ||
-          t.includes("diagnose") ||
-          t.includes("trivsel") ||
+          t.includes("barn") ||
+          t.includes("søn") ||
+          t.includes("datter") ||
+          t.includes("elev") ||
           t.includes("skole") ||
-          t.includes("fravær") ||
-          t.includes("udfordring")
+          t.includes("trivsel") ||
+          t.includes("problemer") ||
+          t.includes("udfordringer") ||
+          t.includes("diagnose") ||
+          t.includes("adhd") ||
+          t.includes("angst")
         )
       );
     })
@@ -153,15 +158,15 @@ export async function POST(req: Request) {
   }
 
   if (!isCase(text)) {
-    return NextResponse.json({
-  type,
-  essens: extractEssens(),
-  kerneData: extractKerneData(claims),   // ← NY LINJE
-  paragraffer: extractParagraffer(claims),
-  arbejdsgrundlag: extractArbejdsgrundlag(claims),
-  andreForhold: extractAndreForhold(),
-});
-  }
+  return NextResponse.json({
+    type: "ukendt",
+    essens: ["Ikke en kommunal sag"],
+    kerneData: [],
+    paragraffer: [],
+    arbejdsgrundlag: [],
+    andreForhold: [],
+  });
+}
 
   const type = detectType(text);
   const claims = claimSplit(text);
