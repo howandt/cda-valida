@@ -106,8 +106,11 @@ function extractEssens(claims: Claim[]) {
 // 🔹 PARAGRAFFER (✔ ⚠️ ❌)
 function extractParagraffer(claims: Claim[]) {
   return claims
-    .filter((c) => c.type === "paragraf")
-    .map((c) => {
+    .filter(c =>
+      c.type === "paragraf" &&
+      c.text.includes("§") // KUN rigtige paragraffer
+    )
+    .map(c => {
       const score = scoreClaim(c);
 
       let label = "❌ Ikke relevant";
