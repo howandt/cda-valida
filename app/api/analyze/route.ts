@@ -9,8 +9,13 @@ type Claim = {
 function detectType(text: string) {
   const t = text.toLowerCase();
 
-  if (t.includes("klage")) return "klage";
-  if (t.includes("ansøg")) return "ansøgning";
+  const hasKlage = t.includes("klage");
+  const hasAnsøgning = t.includes("ansøg");
+
+  if (hasKlage && hasAnsøgning) return "blandet";
+  if (hasKlage) return "klage";
+  if (hasAnsøgning) return "ansøgning";
+
   if (t.includes("vil høre") || t.includes("spørg")) return "forespørgsel";
 
   return "ukendt";
