@@ -145,6 +145,9 @@ function extractArbejdsgrundlag(claims: Claim[]) {
         // fjern følelser / familiebelastning / forklaring
         !t.includes("jeg") &&
         !t.includes("vi") &&
+        !t.includes("ønsk") &&
+        !t.includes("revurder") &&
+        !t.includes("vurdering")
         !t.includes("familie") &&
         !t.includes("arbejde") &&
         !t.includes("understrege") &&
