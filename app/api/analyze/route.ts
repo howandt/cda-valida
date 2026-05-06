@@ -51,12 +51,15 @@ function classifyClaim(sentence: string): Claim {
 
   // 🔹 ØNSKER
   if (
-    t.includes("jeg ønsker") ||
-    t.includes("vi ønsker") ||
-    t.includes("håber") ||
-    t.includes("ansøger") ||
-    t.includes("har brug for hjælp")
-  ) {
+  t.includes("jeg ønsker") ||
+  t.includes("vi ønsker") ||
+  t.includes("håber") ||
+  t.includes("ansøger") ||
+  t.includes("har brug for hjælp") ||
+  t.includes("vurdering af") ||
+  t.includes("muligheder for") ||
+  t.includes("hjælp til")
+) {
     return {
       type: "ønske",
       text: sentence,
