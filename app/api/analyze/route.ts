@@ -1,196 +1,243 @@
 import { NextResponse } from "next/server";
 
+type ClaimType =
+  | "paragraf"
+  | "henvisning"
+  | "ønske"
+  | "belastning"
+  | "fakta"
+  | "emotion"
+  | "uklar";
+
 type Claim = {
-  type: "paragraf" | "henvisning" | "påstand" | "fakta";
+  type: ClaimType;
   text: string;
 };
 
-// 🔹 TYPE DETECTION (klage / ansøgning / forespørgsel)
+function splitSentences(text: string) {
+  return text
+    .split(/[\n\.]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function classifyClaim(sentence: string): Claim {
+  const t = sentence.toLowerCase();
+
+  // 🔹 PARAGRAF
+  if (
+    t.includes("§") ||
+    t.includes("serviceloven") ||
+    t.includes("barnets lov") ||
+    t.includes("forvaltningslov")
+  ) {
+    return {
+      type: "paragraf",
+      text: sentence,
+    };
+  }
+
+  // 🔹 HENVISNING
+  if (
+    t.includes("ankestyrelsen") ||
+    t.includes("ombudsmand") ||
+    t.includes("principafgørelse")
+  ) {
+    return {
+      type: "henvisning",
+      text: sentence,
+    };
+  }
+
+  // 🔹 ØNSKER
+  if (
+    t.includes("jeg ønsker") ||
+    t.includes("vi ønsker") ||
+    t.includes("håber") ||
+    t.includes("ansøger") ||
+    t.includes("har brug for hjælp")
+  ) {
+    return {
+      type: "ønske",
+      text: sentence,
+    };
+  }
+
+  // 🔹 BELASTNING
+  if (
+    t.includes("kan ikke overskue") ||
+    t.includes("mistet arbejde") ||
+    t.includes("sover dårligt") ||
+    t.includes("græder") ||
+    t.includes("belastet") ||
+    t.includes("udmattet")
+  ) {
+    return {
+      type: "belastning",
+      text: sentence,
+    };
+  }
+
+  // 🔹 FAKTA
+  if (
+    t.includes("skole") ||
+    t.includes("barn") ||
+    t.includes("datter") ||
+    t.includes("søn") ||
+    t.includes("adhd") ||
+    t.includes("autisme") ||
+    t.includes("angst") ||
+    t.includes("fravær") ||
+    t.includes("ppr") ||
+    t.includes("støtte")
+  ) {
+    return {
+      type: "fakta",
+      text: sentence,
+    };
+  }
+
+  // 🔹 EMOTION
+  if (
+    t.includes("føler") ||
+    t.includes("træt") ||
+    t.includes("ingen lytter") ||
+    t.includes("helt ødelagt") ||
+    t.includes("frustreret")
+  ) {
+    return {
+      type: "emotion",
+      text: sentence,
+    };
+  }
+
+  return {
+    type: "uklar",
+    text: sentence,
+  };
+}
+
+function claimSplit(text: string): Claim[] {
+  return splitSentences(text).map(classifyClaim);
+}
+
 function detectType(text: string) {
   const t = text.toLowerCase();
 
-  const hasKlage = t.includes("klage");
-  const hasAnsøgning = t.includes("ansøg");
+  const hasKlage =
+    t.includes("klage") ||
+    t.includes("revurdering") ||
+    t.includes("afslag");
+
+  const hasAnsøgning =
+    t.includes("ansøg") ||
+    t.includes("søger støtte") ||
+    t.includes("ønsker hjælp");
 
   if (hasKlage && hasAnsøgning) return "blandet";
   if (hasKlage) return "klage";
   if (hasAnsøgning) return "ansøgning";
 
-  if (t.includes("vil høre") || t.includes("spørg")) return "forespørgsel";
-
-  return "ukendt";
+  return "uklar";
 }
 
-// 🔹 Split tekst i claims
-function claimSplit(text: string): Claim[] {
-  const sentences = text
-    .split(/[\n\.]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+function extractEssens(claims: Claim[]) {
+  const result: string[] = [];
 
-  return sentences.map((s) => {
-    const lower = s.toLowerCase();
+  const fakta = claims.filter((c) => c.type === "fakta");
 
-    if (lower.includes("§") || lower.includes("lov")) {
-      return { type: "paragraf", text: s };
-    }
-
-    if (
-      lower.includes("ombudsmand") ||
-      lower.includes("ankestyrelsen") ||
-      lower.includes("afgørelse") ||
-      lower.includes("medhold") ||
-      lower.includes("lignende sager")
-    ) {
-      return { type: "henvisning", text: s };
-    }
-
-    // 🔴 KUN ren klage = påstand
-    if (
-      lower.includes("jeg klager") ||
-      lower.includes("klage over")
-    ) {
-      return { type: "påstand", text: s };
-    }
-
-    return { type: "fakta", text: s };
-  });
-}
-
-// 🔹 Tjek om det er en relevant sag
-function isCase(text: string) {
-  const lower = text.toLowerCase();
-  return (
-    lower.includes("klage") ||
-    lower.includes("kommune") ||
-    lower.includes("afslag") ||
-    lower.includes("støtte") ||
-    lower.includes("barn") ||
-    lower.includes("skole")
+  const belastning = claims.filter(
+    (c) => c.type === "belastning"
   );
-}
 
-// 🔹 ESSENS (fast og stabil)
-function extractEssens() {
-  return [
-    "Klage eller henvendelse vedr. støtte til barn i skole",
-    "Oplever utilstrækkelig støtte og mistrivsel",
-    "Ønsker revurdering af afgørelsen",
-  ];
-}
+  const ønsker = claims.filter(
+    (c) => c.type === "ønske"
+  );
 
-// 🔹 PARAGRAFFER (kun ægte §)
-function extractParagraffer(claims: Claim[]) {
-  return claims
-    .filter(c => c.type === "paragraf" && c.text.includes("§"))
-    .map(c => `${c.text} → ✔ Relevant`);
-}
+  if (fakta.length > 0) {
+    result.push(
+      "Sagen indeholder oplysninger om barn/familie og støttebehov"
+    );
+  }
 
-// 🔹 ARBEJDSGRUNDLAG (kun fakta – ingen ønsker)
-function extractArbejdsgrundlag(claims: Claim[]) {
-  const result = claims
-    .filter((c) => {
-      const t = c.text.toLowerCase();
+  if (belastning.length > 0) {
+    result.push(
+      "Der beskrives betydelig belastning og mistrivsel"
+    );
+  }
 
-      return (
-        c.type === "fakta" &&
+  if (ønsker.length > 0) {
+    result.push(
+      "Der efterspørges hjælp eller støtte"
+    );
+  }
 
-        (
-          t.includes("har") ||
-          t.includes("er") ||
-          t.includes("diagnose") ||
-          t.includes("trivsel") ||
-          t.includes("skole") ||
-          t.includes("angst") ||
-          t.includes("adhd") ||
-          t.includes("isolerer")
-        ) &&
-
-        !t.includes("ønsk") &&
-        !t.includes("revurder") &&
-        !t.includes("vurdering") &&
-        !t.includes("jeg") &&
-        !t.includes("vi")
-      );
-    })
-    .slice(0, 5)
-    .map(c => c.text);
+  if (result.length === 0) {
+    result.push(
+      "Ingen tydelig essens identificeret"
+    );
+  }
 
   return result;
 }
 
+function extractParagraffer(claims: Claim[]) {
+  return claims
+    .filter((c) => c.type === "paragraf")
+    .map((c) => `${c.text} → ✔ Relevant`);
+}
+
+function extractArbejdsgrundlag(claims: Claim[]) {
+  return claims
+    .filter(
+      (c) =>
+        c.type === "fakta" ||
+        c.type === "belastning"
+    )
+    .slice(0, 8)
+    .map((c) => c.text);
+}
+
+function extractAndreForhold(claims: Claim[]) {
+  return claims
+    .filter(
+      (c) =>
+        c.type === "emotion" ||
+        c.type === "uklar"
+    )
+    .slice(0, 5)
+    .map((c) => c.text);
+}
+
 function extractKerneData(claims: Claim[]) {
   return claims
-    .filter(c => {
-      const t = c.text.toLowerCase();
-
-      return (
-        c.type === "fakta" &&
-
-        (
-          // barn / person
-          t.includes("barn") ||
-          t.includes("søn") ||
-          t.includes("datter") ||
-
-          // skole / trivsel
-          t.includes("skole") ||
-          t.includes("trivsel") ||
-          t.includes("undervisning") ||
-
-          // udfordringer
-          t.includes("udfordring") ||
-          t.includes("problemer") ||
-          t.includes("overvældet") ||
-          t.includes("trækker sig") ||
-
-          // systemforløb
-          t.includes("afslag") ||
-          t.includes("forsøgt") ||
-          t.includes("ppr")
-        )
-      );
-    })
-    .slice(0, 3)
-    .map(c => c.text);
+    .filter((c) => c.type === "fakta")
+    .slice(0, 5)
+    .map((c) => c.text);
 }
 
-// 🔹 ANDRE FORHOLD (valgfrit – tom nu)
-function extractAndreForhold() {
-  return [];
-}
-
-// 🔹 API endpoint
 export async function POST(req: Request) {
   const { text } = await req.json();
 
   if (!text || typeof text !== "string") {
     return NextResponse.json(
-      { error: "Ingen tekst modtaget" },
+      {
+        error: "Ingen tekst modtaget",
+      },
       { status: 400 }
     );
   }
 
-  if (!isCase(text)) {
-  return NextResponse.json({
-    type: "ukendt",
-    essens: ["Ikke en kommunal sag"],
-    kerneData: [],
-    paragraffer: [],
-    arbejdsgrundlag: [],
-    andreForhold: [],
-  });
-}
-
-  const type = detectType(text);
   const claims = claimSplit(text);
-  console.log(claims);
 
   return NextResponse.json({
-    type,
-    essens: extractEssens(),
+    type: detectType(text),
+    essens: extractEssens(claims),
+    kerneData: extractKerneData(claims),
     paragraffer: extractParagraffer(claims),
-    arbejdsgrundlag: extractArbejdsgrundlag(claims),
-    andreForhold: extractAndreForhold(),
+    arbejdsgrundlag:
+      extractArbejdsgrundlag(claims),
+    andreForhold:
+      extractAndreForhold(claims),
   });
 }
