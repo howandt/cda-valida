@@ -194,9 +194,6 @@ function extractArbejdsgrundlag(claims: Claim[]) {
         c.type === "fakta" ||
         c.type === "belastning"
     )
-    .slice(0, 8)
-    .map((c) => c.text);
-}
 
 function extractAndreForhold(claims: Claim[]) {
   return claims
