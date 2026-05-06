@@ -123,20 +123,25 @@ function extractArbejdsgrundlag(claims: Claim[]) {
   return claims
     .filter(c =>
       c.type === "fakta" &&
-      !c.text.toLowerCase().includes("jeg vil") &&
-      !c.text.toLowerCase().includes("jeg ønsker") &&
-      !c.text.toLowerCase().includes("på den baggrund")
+      !c.text.toLowerCase().includes("ønsker") &&
+      !c.text.toLowerCase().includes("revurder") &&
+      !c.text.toLowerCase().includes("vurdering") &&
+      !c.text.toLowerCase().includes("på den baggrund") &&
+      !c.text.toLowerCase().includes("jeg vil")
     )
-    .slice(0, 6)
+    .slice(0, 5)
     .map(c => c.text);
 }
 
 // 🔹 ANDRE FORHOLD (max 3 linjer)
 function extractAndreForhold(claims: Claim[]) {
   return claims
-    .filter((c) => c.type === "henvisning")
-    .slice(0, 3)
-    .map((c) => c.text);
+    .filter(c =>
+      c.type === "henvisning" &&
+      c.text.toLowerCase().includes("andre")
+    )
+    .slice(0, 2)
+    .map(c => c.text);
 }
 
 // 🔹 API endpoint
