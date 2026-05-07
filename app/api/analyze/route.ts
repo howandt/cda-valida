@@ -1,354 +1,145 @@
 import { NextResponse } from "next/server";
 
-type ClaimType =
-| "fakta"
-| "belastning"
-| "ønske"
-| "paragraf"
-| "henvisning"
-| "emotion"
-| "meta"
-| "uklar";
+// ─── MODUL-PROMPTS ─────────────────────────────────────────────────────────────
+// Tilføj nye moduler her: handicap, ældre, psykiatri osv.
 
-type Claim = {
-type: ClaimType;
-text: string;
-priority: number;
+const MODUL_PROMPTS: Record<string, string> = {
+  børn: `
+Du er et validerings- og struktureringsværktøj til kommunal sagsbehandling inden for børn og familier.
+Dit arbejdsområde er: ansøgninger og klager fra forældre vedrørende deres barn i dagtilbud, folkeskole, specialskole, PPR, støtteforanstaltninger og kommunale ydelser til børn.
+
+Relevante love i dette domæne:
+- Folkeskoleloven (særligt § 3, § 12, § 20)
+- Serviceloven (særligt § 11, § 40, § 44, § 50, § 52, § 76)
+- Barnets Lov
+- Dagtilbudsloven
+- Specialundervisningsbekendtgørelsen
+
+Din opgave er at analysere det indsendte dokument og returnere præcis følgende JSON-struktur — intet andet, ingen forklaring, ingen markdown:
+
+{
+  "type": "klage" | "ansøgning" | "information" | "uklar",
+  "persondata": {
+    "barn": "",
+    "alder": "",
+    "skole_institution": "",
+    "klasse_trin": "",
+    "forælder_navn": "",
+    "adresse": "",
+    "kontakt": "",
+    "diagnose_status": "",
+    "andre_fagpersoner": ""
+  },
+  "kerneansøgning": "",
+  "dokumenterede_fakta": [],
+  "paragraffer": [
+    {
+      "tekst": "",
+      "status": "verificeret" | "usikker" | "hallucination",
+      "note": ""
+    }
+  ],
+  "andre_henvisninger": [
+    {
+      "tekst": "",
+      "status": "verificeret" | "usikker" | "hallucination",
+      "note": ""
+    }
+  ],
+  "filtreret_fra": [],
+  "handlingspunkter": []
+}
+
+REGLER DU SKAL FØLGE STRENGT:
+
+1. kerneansøgning: Skriv præcis ÉN sætning der beskriver hvad ansøger reelt ønsker. Maks 25 ord.
+
+2. dokumenterede_fakta: Kun verificerbare fakta — datoer, møder, fagpersoner, institutioner, konkrete hændelser. Ingen meninger, ingen høresagn, ingen spørgsmål.
+
+3. paragraffer og andre_henvisninger — verificering:
+   - "verificeret": Paragraffen eksisterer og er relevant i dansk ret inden for domænet
+   - "usikker": Ansøger selv er usikker, eller paragraffen er uklar/delvist citeret
+   - "hallucination": Paragraffen eller referencen eksisterer ikke, er opfundet, eller stammer fra andet land
+   VIGTIGT: Principafgørelser, domme og ombudsmandsudtalelser skal altid markeres "usikker" medmindre de er velkendte. Paragraffer ansøger selv tvivler på markeres "usikker".
+
+4. filtreret_fra: Kortfattede beskrivelser (ikke citater) af hvad der er fjernet — spørgsmål til sagsbehandler, høresagn, sociale medier, personlige meninger om fagpersoner, trusler om presse/politik.
+
+5. handlingspunkter: Maks 5 konkrete handlinger sagsbehandleren skal tage stilling til.
+
+6. Hvis et felt ikke kan udfyldes, brug tom streng "" eller tomt array [].
+`,
 };
 
-function splitLines(text: string) {
-return text
-.split(/\n|(?<=[.!?])\s+/)
-.map((s) => s.trim())
-.filter(Boolean);
+// ─── HJÆLPEFUNKTION: Byg prompt ───────────────────────────────────────────────
+
+function buildPrompt(modul: string, type: string, text: string): string {
+  const modulPrompt = MODUL_PROMPTS[modul] ?? MODUL_PROMPTS["børn"];
+  return `${modulPrompt}
+
+Dokumenttype oplyst af indsender: ${type}
+
+DOKUMENT TIL ANALYSE:
+${text}`;
 }
 
-function isListFragment(text: string) {
-return (
-text.length < 60 &&
-!text.includes(".") &&
-!text.includes("?")
-);
-}
-
-function normalize(text: string) {
-return text.toLowerCase().trim();
-}
-
-function classifyClaim(sentence: string): Claim {
-const t = normalize(sentence);
-
-// 🔹 META / STRATEGI / AI-STØJ
-if (
-t.includes("jeg har fået at vide") ||
-t.includes("jeg har hørt") ||
-t.includes("facebook") ||
-t.includes("chatgpt") ||
-t.includes("bedre chance") ||
-t.includes("hvordan skal jeg skrive") ||
-t.includes("hvordan kan jeg være sikker") ||
-t.includes("andre forældre") ||
-t.includes("en bekendt") ||
-t.includes("man skal skrive")
-) {
-return {
-type: "meta",
-text: sentence,
-priority: 1,
-};
-}
-
-// 🔹 PARAGRAFFER
-if (
-t.includes("§") ||
-t.includes("serviceloven") ||
-t.includes("barnets lov") ||
-t.includes("forvaltningslov") ||
-t.includes("retssikkerhedsloven")
-) {
-return {
-type: "paragraf",
-text: sentence,
-priority: 2,
-};
-}
-
-// 🔹 HENVISNINGER
-if (
-t.includes("ankestyrelsen") ||
-t.includes("ombudsmand") ||
-t.includes("principafgørelse") ||
-t.includes("domspraksis")
-) {
-return {
-type: "henvisning",
-text: sentence,
-priority: 1,
-};
-}
-
-// 🔹 ØNSKER
-if (
-t.includes("jeg ønsker") ||
-t.includes("vi ønsker") ||
-t.includes("jeg vil gerne") ||
-t.includes("anmoder om") ||
-t.includes("søger hjælp") ||
-t.includes("hjælp til") ||
-t.includes("muligheder for") ||
-t.includes("vurdering af")
-) {
-return {
-type: "ønske",
-text: sentence,
-priority: 2,
-};
-}
-
-// 🔹 ALVORLIGE BELASTNINGSSIGNALER
-if (
-t.includes("ikke i skole") ||
-t.includes("skolefravær") ||
-t.includes("græder") ||
-t.includes("låser sig inde") ||
-t.includes("gemmer sig") ||
-t.includes("løbet væk") ||
-t.includes("ikke mening") ||
-t.includes("selvmord") ||
-t.includes("udbrud") ||
-t.includes("affekt") ||
-t.includes("sover dårligt") ||
-t.includes("sygemeldt") ||
-t.includes("stresssymptomer") ||
-t.includes("påvirker hele familien")
-) {
-return {
-type: "belastning",
-text: sentence,
-priority: 5,
-};
-}
-
-// 🔹 EMOTION
-if (
-t.includes("jeg føler") ||
-t.includes("jeg er bange") ||
-t.includes("jeg er træt") ||
-t.includes("desperat") ||
-t.includes("ingen lytter")
-) {
-return {
-type: "emotion",
-text: sentence,
-priority: 1,
-};
-}
-
-// 🔹 FAKTA
-if (
-t.includes("adhd") ||
-t.includes("autisme") ||
-t.includes("angst") ||
-t.includes("skole") ||
-t.includes("ppr") ||
-t.includes("barn") ||
-t.includes("søn") ||
-t.includes("datter") ||
-t.includes("støtte") ||
-t.includes("trivsel") ||
-t.includes("diagnose")
-) {
-return {
-type: "fakta",
-text: sentence,
-priority: 3,
-};
-}
-
-return {
-type: "uklar",
-text: sentence,
-priority: 0,
-};
-}
-
-function buildClaims(text: string): Claim[] {
-const lines = splitLines(text);
-
-const claims: Claim[] = [];
-
-let currentContext: ClaimType | null = null;
-
-for (const line of lines) {
-const claim = classifyClaim(line);
-
-// 🔹 Listepunkter arver kontekst
-if (
-  isListFragment(line) &&
-  currentContext === "ønske"
-) {
-  claims.push({
-    type: "ønske",
-    text: line,
-    priority: 2,
-  });
-
-  continue;
-}
-
-if (claim.type !== "uklar") {
-  currentContext = claim.type;
-}
-
-claims.push(claim);
-
-}
-
-return claims;
-}
-
-function detectType(claims: Claim[]) {
-const hasØnske = claims.some(
-(c) => c.type === "ønske"
-);
-
-const hasBelastning = claims.some(
-(c) => c.type === "belastning"
-);
-
-const hasParagraf = claims.some(
-(c) => c.type === "paragraf"
-);
-
-if (hasØnske && hasBelastning) {
-return "ansøgning";
-}
-
-if (hasBelastning && hasParagraf) {
-return "klage";
-}
-
-return "uklar";
-}
-
-function extractEssens(claims: Claim[]) {
-const result: string[] = [];
-
-if (
-claims.some((c) => c.type === "fakta")
-) {
-result.push(
-"Sagen indeholder konkrete oplysninger om barn/familie"
-);
-}
-
-if (
-claims.some((c) => c.type === "belastning")
-) {
-result.push(
-"Der beskrives belastning og mistrivsel"
-);
-}
-
-if (
-claims.some((c) => c.type === "ønske")
-) {
-result.push(
-"Der anmodes om hjælp eller støtte"
-);
-}
-
-if (result.length === 0) {
-result.push(
-"Ingen tydelig essens identificeret"
-);
-}
-
-return result;
-}
-
-function extractKerneData(claims: Claim[]) {
-return claims
-.filter(
-(c) =>
-c.type === "fakta" ||
-c.type === "belastning"
-)
-.filter((c) => c.priority >= 3)
-.slice(0, 6)
-.map((c) => c.text);
-}
-
-function extractParagraffer(claims: Claim[]) {
-return claims
-.filter((c) => c.type === "paragraf")
-.map((c) => `${c.text} → ✔ Relevant`);
-}
-
-function extractArbejdsgrundlag(claims: Claim[]) {
-return claims
-.filter(
-(c) =>
-c.type === "fakta" ||
-c.type === "belastning"
-)
-.filter((c) => c.priority >= 3)
-.slice(0, 10)
-.map((c) => c.text);
-}
-
-function extractAndreForhold(claims: Claim[]) {
-return claims
-.filter(
-(c) =>
-c.type === "emotion" ||
-c.type === "meta" ||
-c.type === "uklar" ||
-c.type === "henvisning"
-)
-.slice(0, 10)
-.map((c) => c.text);
-}
+// ─── API ROUTE ─────────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
-let body;
+  let body: { text?: string; type?: string; modul?: string };
 
-try {
-  body = await req.json();
-} catch (error) {
-  return NextResponse.json(
-    {
-      error: "Ugyldig JSON",
-    },
-    {
-      status: 400,
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Ugyldig JSON" }, { status: 400 });
+  }
+
+  const text = body?.text;
+  const type = body?.type ?? "ukendt";
+  const modul = body?.modul ?? "børn";
+
+  if (!text || typeof text !== "string" || text.trim().length < 20) {
+    return NextResponse.json({ error: "Ingen tekst modtaget" }, { status: 400 });
+  }
+
+  const prompt = buildPrompt(modul, type, text);
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1500,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("Claude API fejl:", err);
+      return NextResponse.json({ error: "Analysefejl" }, { status: 500 });
     }
-  );
-}
 
-const text = body?.text;
+    const data = await response.json();
+    const raw = data?.content?.[0]?.text ?? "";
 
-if (!text || typeof text !== "string") {
-return NextResponse.json(
-{
-error: "Ingen tekst modtaget",
-},
-{
-status: 400,
-}
-);
-}
+    // Strip markdown fences hvis de er der
+    const clean = raw.replace(/```json|```/g, "").trim();
 
-const claims = buildClaims(text);
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch {
+      console.error("JSON parse fejl:", clean);
+      return NextResponse.json({ error: "Kunne ikke parse analyse" }, { status: 500 });
+    }
 
-return NextResponse.json({
-type: detectType(claims),
-essens: extractEssens(claims),
-kerneData: extractKerneData(claims),
-paragraffer: extractParagraffer(claims),
-arbejdsgrundlag:
-extractArbejdsgrundlag(claims),
-andreForhold:
-extractAndreForhold(claims),
-});
+    return NextResponse.json(parsed);
+  } catch (err) {
+    console.error("Netværksfejl:", err);
+    return NextResponse.json({ error: "Servicefejl" }, { status: 500 });
+  }
 }
