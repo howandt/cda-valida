@@ -35,7 +35,7 @@ type Result = {
 const STATUS_CONFIG = {
   verificeret: { label: "✔ Verificeret", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
   usikker:     { label: "⚠ Usikker",     color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
-  hallucination: { label: "✗ Hallucination", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  hallucination: { label: "✗ Kan ikke verificeres", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
 };
 
 const TYPE_CONFIG = {

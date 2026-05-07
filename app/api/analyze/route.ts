@@ -68,7 +68,7 @@ REGLER DU SKAL FØLGE STRENGT:
 3. paragraffer og andre_henvisninger — verificering:
    - "verificeret": Paragraffen eksisterer og er relevant i dansk ret inden for domænet
    - "usikker": Ansøger selv er usikker, eller paragraffen er uklar/delvist citeret
-   - "hallucination": Paragraffen eller referencen eksisterer ikke, er opfundet, eller stammer fra andet land
+   - "hallucination": Paragraffen eller referencen kan ikke verificeres eller findes ikke i dansk ret
    VIGTIGT: Principafgørelser, domme og ombudsmandsudtalelser skal altid markeres "usikker" medmindre de er velkendte. Paragraffer ansøger selv tvivler på markeres "usikker".
 
 4. filtreret_fra: Kortfattede beskrivelser (ikke citater) af hvad der er fjernet — spørgsmål til sagsbehandler, høresagn, sociale medier, personlige meninger om fagpersoner, trusler om presse/politik.
