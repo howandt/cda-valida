@@ -84,7 +84,7 @@ Du skal kun anonymisere persondata, hvis dokumenttype oplyst af indsender eller 
 - "offentlig version"
 - "uden persondata"
 
-Hvis anonymisering er ønsket, skal du bruge:
+Hvis anonymisering er ønsket, og patientens navn fremgår af dokumentet, skal feltet "barn" altid udfyldes med "[Patient]". Feltet må ikke stå tomt.
 - barn: "[Barn]"
 - forælder_navn: "[Forælder]"
 - skole_institution: "[Skole/institution]"
@@ -128,7 +128,7 @@ Skriv i stedet neutralt:
 - "Kritik af sagsbehandling"
 - "Personlig vurdering af fagperson"
 
-1. kerneansøgning: Skriv præcis ÉN sætning der beskriver hvad ansøger reelt ønsker. Maks 25 ord.
+1. kerneansøgning: Skriv præcis ÉN sætning der beskriver hvad personen reelt ønsker. Maks 25 ord. Brug neutralt sprog som "ønsker", "anmoder om" eller "beder om". Undgå ord som "kræver", "forlanger" eller "anklager", medmindre dokumentet selv bruger det ord tydeligt.
 
 2. dokumenterede_fakta: Kun verificerbare fakta — datoer, møder, fagpersoner, institutioner, konkrete hændelser. Ingen meninger, ingen høresagn, ingen spørgsmål.
 
@@ -242,6 +242,7 @@ Du skal kun anonymisere persondata, hvis dokumenttype oplyst af indsender eller 
 
 Hvis anonymisering er ønsket, skal du bruge:
 - barn: "[Patient]" hvis patientens navn fremgår
+Hvis anonymisering er ønsket, og patientens navn fremgår af dokumentet, skal feltet "barn" altid udfyldes med "[Patient]". Feltet må ikke stå tomt.
 - forælder_navn: "[Pårørende]" hvis pårørendes navn fremgår
 - skole_institution: "[Afdeling/klinik]" hvis afdeling, hospital, psykiatrisk center eller klinik fremgår
 - adresse: "[Adresse udeladt]"
