@@ -61,22 +61,47 @@ Din opgave er at analysere det indsendte dokument og returnere præcis følgende
 
 REGLER DU SKAL FØLGE STRENGT:
 
-0. ANONYMISERING:
-Rapporten må som standard IKKE returnere direkte persondata.
+0. PERSONDATA OG ANONYMISERING:
+Valida er som udgangspunkt et internt sagsværktøj.
 
-Hvis dokumentet indeholder navne, adresse, telefonnummer, e-mail, skole/institution eller andre identificerende oplysninger, skal de anonymiseres i JSON-outputtet.
+Standardrapporten skal derfor returnere de konkrete persondata, hvis de fremgår af dokumentet.
 
-Brug disse værdier:
-- barn: "[Barn]" hvis barnets navn fremgår
-- forælder_navn: "[Forælder]" hvis forælderens navn fremgår
-- skole_institution: "[Skole/institution]" hvis navnet fremgår
-- adresse: "[Adresse udeladt]" hvis adresse fremgår
-- kontakt: "[Kontakt udeladt]" hvis telefon eller e-mail fremgår
+Det gælder:
+- barnets navn
+- alder
+- skole/institution
+- klasse/trin
+- forælderens navn
+- adresse
+- kontaktoplysninger
+- diagnose_status
+- andre fagpersoner
 
-Du må gerne registrere, at oplysningerne findes, men ikke gengive de konkrete persondata.
+Du skal kun anonymisere persondata, hvis dokumenttype oplyst af indsender eller dokumentteksten tydeligt indeholder et af disse ord:
+- "anonym"
+- "anonymiseret"
+- "delbar rapport"
+- "offentlig version"
+- "uden persondata"
 
-Eksempel:
+Hvis anonymisering er ønsket, skal du bruge:
+- barn: "[Barn]"
+- forælder_navn: "[Forælder]"
+- skole_institution: "[Skole/institution]"
+- adresse: "[Adresse udeladt]"
+- kontakt: "[Kontakt udeladt]"
+- andre direkte identificerende oplysninger skal udelades eller erstattes med neutrale betegnelser.
+
+Hvis anonymisering IKKE er ønsket, skal du udfylde persondatafelterne med de konkrete oplysninger fra dokumentet.
+
+Eksempel fuld intern rapport:
 Hvis teksten siger "Peter Stig går i 6. klasse på Nyskole", skal output være:
+"barn": "Peter Stig"
+"klasse_trin": "6. klasse"
+"skole_institution": "Nyskole"
+
+Eksempel anonymiseret rapport:
+Hvis teksten siger "Peter Stig går i 6. klasse på Nyskole", og anonymisering er ønsket, skal output være:
 "barn": "[Barn]"
 "klasse_trin": "6. klasse"
 "skole_institution": "[Skole/institution]"
@@ -136,10 +161,10 @@ export async function POST(req: Request) {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-  "Content-Type": "application/json",
-  "anthropic-version": "2023-06-01",
-  "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
-},
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
+      },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1500,
