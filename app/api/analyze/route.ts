@@ -254,6 +254,31 @@ Eksempel:
 
 Hvis anonymisering IKKE er ønsket, skal du udfylde persondatafelterne med de konkrete oplysninger fra dokumentet.
 
+Ved anonymiseret rapport skal anonymisering gælde i HELE JSON-outputtet — ikke kun i persondata.
+
+Det betyder:
+- personnavne må ikke gengives i dokumenterede_fakta
+- konkrete kliniknavne, hospitalsnavne og afdelingsnavne må ikke gengives i dokumenterede_fakta
+- fagpersonnavne må ikke gengives i dokumenterede_fakta, paragraffer, andre_henvisninger, filtreret_fra eller handlingspunkter
+- kontaktoplysninger og adresser må ikke gengives nogen steder i outputtet
+
+Eksempler:
+"Henvist til Psykiatrisk Ambulatorium Aarhus den 12-03-2026"
+skal blive til:
+"Henvist til [Afdeling/klinik] den 12-03-2026"
+
+"Første samtale med psykolog Anne Madsen den 02-04-2026"
+skal blive til:
+"Første samtale med [Fagperson], psykolog den 02-04-2026"
+
+I handlingspunkter må du ikke skrive som om afgørelsen allerede er truffet.
+Skriv "Vurdere behov for..." når der er tale om en vurdering.
+
+Eksempel:
+"Tildele fast kontaktperson"
+skal blive til:
+"Vurdere behov for fast kontaktperson"
+
 1. kerneansøgning: Skriv præcis ÉN sætning der beskriver hvad personen reelt ønsker. Maks 25 ord.
 
 2. dokumenterede_fakta: Kun verificerbare fakta — datoer, møder, behandlere, afdeling, konkrete hændelser, henvisninger, beslutninger, udskrivelse, medicinændringer, klager eller aftaler. Ingen meninger, ingen høresagn, ingen diagnoser du selv udleder.
