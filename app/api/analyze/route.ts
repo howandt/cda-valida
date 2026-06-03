@@ -1,155 +1,313 @@
 import { NextResponse } from "next/server";
 
-// ─── MODUL-PROMPTS ─────────────────────────────────────────────────────────────
-// Tilføj nye moduler her: handicap, ældre, psykiatri osv.
+type ClaimType = "paragraf" | "henvisning" | "påstand" | "fakta";
 
-const MODUL_PROMPTS: Record<string, string> = {
-  børn: `
-Du er et validerings- og struktureringsværktøj til kommunal sagsbehandling inden for børn og familier.
-Dit arbejdsområde er: ansøgninger og klager fra forældre vedrørende deres barn i dagtilbud, folkeskole, specialskole, PPR, støtteforanstaltninger og kommunale ydelser til børn.
-
-Relevante love i dette domæne:
-- Folkeskoleloven (særligt § 3, § 12, § 20)
-- Serviceloven (særligt § 11, § 40, § 44, § 50, § 52, § 76)
-- Barnets Lov (særligt § 5 stk. 1-4 om børns ret til støtte, inddragelse og trivsel)
-- Dagtilbudsloven
-- Specialundervisningsbekendtgørelsen
-
-Verificerede paragraffer du ALTID skal markere som verificeret når de citeres korrekt:
-- Barnets Lov § 5 stk. 1 — ret til omsorg, tryghed og udvikling
-- Barnets Lov § 5 stk. 2 — ret til indflydelse på egne forhold
-- Barnets Lov § 5 stk. 3 — ret til inddragelse og samtaler inden afgørelser
-- Barnets Lov § 5 stk. 4 — undtagelse fra samtalekrav i særlige tilfælde
-- Folkeskolelovens § 3 stk. 2 — tilpasset undervisning
-- Servicelovens § 52 stk. 3 — støtteforanstaltninger
-- Servicelovens § 11 stk. 3 — rådgivning til forældre
-
-Din opgave er at analysere det indsendte dokument og returnere præcis følgende JSON-struktur — intet andet, ingen forklaring, ingen markdown:
-
-{
-  "type": "klage" | "ansøgning" | "information" | "uklar",
-  "persondata": {
-    "barn": "",
-    "alder": "",
-    "skole_institution": "",
-    "klasse_trin": "",
-    "forælder_navn": "",
-    "adresse": "",
-    "kontakt": "",
-    "diagnose_status": "",
-    "andre_fagpersoner": ""
-  },
-  "kerneansøgning": "",
-  "dokumenterede_fakta": [],
-  "paragraffer": [
-    {
-      "tekst": "",
-      "status": "verificeret" | "usikker" | "hallucination",
-      "note": ""
-    }
-  ],
-  "andre_henvisninger": [
-    {
-      "tekst": "",
-      "status": "verificeret" | "usikker" | "hallucination",
-      "note": ""
-    }
-  ],
-  "filtreret_fra": [],
-  "handlingspunkter": []
-}
-
-REGLER DU SKAL FØLGE STRENGT:
-
-1. kerneansøgning: Skriv præcis ÉN sætning der beskriver hvad ansøger reelt ønsker. Maks 25 ord.
-
-2. dokumenterede_fakta: Kun verificerbare fakta — datoer, møder, fagpersoner, institutioner, konkrete hændelser. Ingen meninger, ingen høresagn, ingen spørgsmål.
-
-3. paragraffer og andre_henvisninger — verificering:
-   - "verificeret": Paragraffen eksisterer og er relevant i dansk ret inden for domænet
-   - "usikker": Ansøger selv er usikker, eller paragraffen er uklar/delvist citeret
-   - "hallucination": Paragraffen eller referencen kan ikke verificeres eller findes ikke i dansk ret
-   VIGTIGT: Principafgørelser, domme og ombudsmandsudtalelser skal altid markeres "usikker" medmindre de er velkendte. Paragraffer ansøger selv tvivler på markeres "usikker".
-
-4. filtreret_fra: Kortfattede beskrivelser (ikke citater) af hvad der er fjernet — spørgsmål til sagsbehandler, høresagn, sociale medier, personlige meninger om fagpersoner, trusler om presse/politik.
-
-5. handlingspunkter: Maks 5 konkrete handlinger sagsbehandleren skal tage stilling til.
-
-6. Hvis et felt ikke kan udfyldes, brug tom streng "" eller tomt array [].
-`,
+type Claim = {
+  type: ClaimType;
+  text: string;
 };
 
-// ─── HJÆLPEFUNKTION: Byg prompt ───────────────────────────────────────────────
+function anonymizeText(text: string) {
+  return text
+    // E-mail
+    .replace(
+      /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+      "[E-mail udeladt]"
+    )
 
-function buildPrompt(modul: string, type: string, text: string): string {
-  const modulPrompt = MODUL_PROMPTS[modul] ?? MODUL_PROMPTS["børn"];
-  return `${modulPrompt}
+    // Telefonnummer DK-lignende
+    .replace(/\b(\+45\s?)?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\b/g, "[Telefon udeladt]")
 
-Dokumenttype oplyst af indsender: ${type}
+    // Adresse-lignende tekst
+    .replace(
+      /\b([A-ZÆØÅ][a-zæøå]+(?:\s[A-ZÆØÅa-zæøå]+)*\s\d+[A-Za-z]?(?:,\s?\d+\.?\s?(?:tv|th|mf|sal|st)?)?)\b/g,
+      "[Adresse udeladt]"
+    )
 
-DOKUMENT TIL ANALYSE:
-${text}`;
+    // Navne efter typiske labels
+    .replace(/Barn\s*[:\-]\s*[A-ZÆØÅ][A-Za-zÆØÅæøå\s-]+/g, "Barn: [Barn]")
+    .replace(
+      /Forælder\s*[:\-]\s*[A-ZÆØÅ][A-Za-zÆØÅæøå\s-]+/g,
+      "Forælder: [Forælder]"
+    )
+    .replace(
+      /Ansøger\s*[:\-]\s*[A-ZÆØÅ][A-Za-zÆØÅæøå\s-]+/g,
+      "Ansøger: [Forælder]"
+    )
+    .replace(
+      /Skole\s*[:\-]\s*[A-ZÆØÅ][A-Za-zÆØÅæøå\s-]+/g,
+      "Skole: [Skole]"
+    );
 }
 
-// ─── API ROUTE ─────────────────────────────────────────────────────────────────
+function claimSplit(text: string): Claim[] {
+  const cleanText = anonymizeText(text);
+
+  const sentences = cleanText
+    .split(/[\n\.]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return sentences.map((s) => {
+    const lower = s.toLowerCase();
+
+    if (
+      lower.includes("§") ||
+      lower.includes("folkeskoleloven") ||
+      lower.includes("serviceloven") ||
+      lower.includes("barnets lov") ||
+      lower.includes("forvaltningsloven") ||
+      lower.includes("offentlighedsloven")
+    ) {
+      return { type: "paragraf", text: s };
+    }
+
+    if (
+      lower.includes("ombudsmand") ||
+      lower.includes("ankestyrelsen") ||
+      lower.includes("klagenævnet") ||
+      lower.includes("principafgørelse") ||
+      lower.includes("afgørelse") ||
+      lower.includes("dom") ||
+      lower.includes("vejledning") ||
+      lower.includes("medhold") ||
+      lower.includes("lignende sager")
+    ) {
+      return { type: "henvisning", text: s };
+    }
+
+    if (
+      lower.includes("jeg mener") ||
+      lower.includes("vi mener") ||
+      lower.includes("oplever") ||
+      lower.includes("ønsker") ||
+      lower.includes("kræver") ||
+      lower.includes("anmoder") ||
+      lower.includes("klage") ||
+      lower.includes("afvist") ||
+      lower.includes("revurdering") ||
+      lower.includes("kommunen")
+    ) {
+      return { type: "påstand", text: s };
+    }
+
+    return { type: "fakta", text: s };
+  });
+}
+
+function isCase(text: string) {
+  const lower = text.toLowerCase();
+
+  return (
+    lower.includes("klage") ||
+    lower.includes("kommune") ||
+    lower.includes("afslag") ||
+    lower.includes("støtte") ||
+    lower.includes("barn") ||
+    lower.includes("skole") ||
+    lower.includes("ppr") ||
+    lower.includes("trivsel") ||
+    lower.includes("specialundervisning") ||
+    lower.includes("aktindsigt")
+  );
+}
+
+function scoreClaim(claim: Claim) {
+  let score = 0;
+
+  if (claim.type === "fakta") score += 0.5;
+  if (claim.type === "påstand") score += 0.45;
+  if (claim.type === "paragraf") score += 0.65;
+  if (claim.type === "henvisning") score += 0.35;
+
+  if (claim.text.length > 20) score += 0.2;
+  if (claim.text.length > 80) score += 0.1;
+
+  if (claim.type === "henvisning") score -= 0.15;
+
+  return Math.max(0, Math.min(score, 1));
+}
+
+function validateClaim(claim: Claim) {
+  const t = claim.text.toLowerCase();
+
+  if (claim.type === "paragraf") {
+    if (
+      t.includes("folkeskoleloven") ||
+      t.includes("serviceloven") ||
+      t.includes("barnets lov") ||
+      t.includes("forvaltningsloven") ||
+      t.includes("offentlighedsloven") ||
+      t.includes("§")
+    ) {
+      return {
+        valid: true,
+        status: "relevant",
+        note: "Juridisk relevant henvisning – bør kontrolleres mod konkret paragraf",
+      };
+    }
+
+    return {
+      valid: false,
+      status: "usikker",
+      note: "Ukendt eller upræcis paragraf",
+    };
+  }
+
+  if (claim.type === "henvisning") {
+    if (
+      t.includes("ankestyrelsen") ||
+      t.includes("klagenævnet for specialundervisning")
+    ) {
+      return {
+        valid: true,
+        status: "verificeret",
+        note: "Eksisterende klageinstans eller myndighed",
+      };
+    }
+
+    return {
+      valid: false,
+      status: "usikker",
+      note: "Kræver konkret dokumentation, dato, sagsnummer eller kilde",
+    };
+  }
+
+  if (claim.type === "påstand") {
+    return {
+      valid: true,
+      status: "forælderoplysning",
+      note: "Oplysning eller krav fra forælder – bør dokumenteres",
+    };
+  }
+
+  return {
+    valid: true,
+    status: "fakta",
+    note: "Faktuel oplysning udtrukket fra teksten",
+  };
+}
+
+function buildOutput(claims: Claim[]) {
+  const relevant: any[] = [];
+  const notRelevant: any[] = [];
+  const uncertain: any[] = [];
+
+  const documentedFacts: any[] = [];
+  const parentClaims: any[] = [];
+  const legalVerified: any[] = [];
+  const legalUncertain: any[] = [];
+  const actionPoints: string[] = [];
+
+  claims.forEach((c) => {
+    const score = scoreClaim(c);
+    const validation = validateClaim(c);
+
+    const item = {
+      text: c.text,
+      type: c.type,
+      score: score.toFixed(2),
+      valid: validation.valid,
+      status: validation.status,
+      note: validation.note,
+    };
+
+    if (c.type === "fakta") documentedFacts.push(item);
+    if (c.type === "påstand") parentClaims.push(item);
+
+    if (c.type === "paragraf" || c.type === "henvisning") {
+      if (validation.status === "verificeret" || validation.valid) {
+        legalVerified.push(item);
+      } else {
+        legalUncertain.push(item);
+      }
+    }
+
+    const lower = c.text.toLowerCase();
+
+    if (
+      lower.includes("ppr") ||
+      lower.includes("handleplan") ||
+      lower.includes("støtte") ||
+      lower.includes("aktindsigt") ||
+      lower.includes("skriftlig afgørelse") ||
+      lower.includes("klagevejledning")
+    ) {
+      actionPoints.push(c.text);
+    }
+
+    if (score >= 0.6) relevant.push(item);
+    else if (score >= 0.3) uncertain.push(item);
+    else notRelevant.push(item);
+  });
+
+  const summary: string[] = [];
+
+  if (documentedFacts.length > 0) {
+    summary.push(documentedFacts[0].text);
+  }
+
+  if (parentClaims.length > 0) {
+    summary.push(parentClaims[0].text);
+  }
+
+  const firstLegal =
+    legalVerified.length > 0 ? legalVerified[0] : legalUncertain[0];
+
+  if (firstLegal) {
+    summary.push(firstLegal.text);
+  }
+
+  if (actionPoints.length > 0) {
+    summary.push(actionPoints[0]);
+  }
+
+  return {
+    summary,
+    documentedFacts,
+    parentClaims,
+    legalVerified,
+    legalUncertain,
+    actionPoints,
+    relevant,
+    uncertain,
+    notRelevant,
+  };
+}
 
 export async function POST(req: Request) {
-  let body: { text?: string; type?: string; modul?: string };
+  const { text } = await req.json();
 
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Ugyldig JSON" }, { status: 400 });
-  }
-
-  const text = body?.text;
-  const type = body?.type ?? "ukendt";
-  const modul = body?.modul ?? "børn";
-
-  if (!text || typeof text !== "string" || text.trim().length < 20) {
-    return NextResponse.json({ error: "Ingen tekst modtaget" }, { status: 400 });
-  }
-
-  const prompt = buildPrompt(modul, type, text);
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-  "Content-Type": "application/json",
-  "anthropic-version": "2023-06-01",
-  "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
-},
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1500,
-        messages: [{ role: "user", content: prompt }],
-      }),
+  if (!text || typeof text !== "string") {
+    return NextResponse.json({
+      summary: [],
+      documentedFacts: [],
+      parentClaims: [],
+      legalVerified: [],
+      legalUncertain: [],
+      actionPoints: [],
+      relevant: [],
+      uncertain: [],
+      notRelevant: [{ text: "Ingen tekst modtaget" }],
     });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error("Claude API fejl:", err);
-      return NextResponse.json({ error: "Analysefejl" }, { status: 500 });
-    }
-
-    const data = await response.json();
-    const raw = data?.content?.[0]?.text ?? "";
-
-    // Strip markdown fences hvis de er der
-    const clean = raw.replace(/```json|```/g, "").trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(clean);
-    } catch {
-      console.error("JSON parse fejl:", clean);
-      return NextResponse.json({ error: "Kunne ikke parse analyse" }, { status: 500 });
-    }
-
-    return NextResponse.json(parsed);
-  } catch (err) {
-    console.error("Netværksfejl:", err);
-    return NextResponse.json({ error: "Servicefejl" }, { status: 500 });
   }
+
+  if (!isCase(text)) {
+    return NextResponse.json({
+      summary: [],
+      documentedFacts: [],
+      parentClaims: [],
+      legalVerified: [],
+      legalUncertain: [],
+      actionPoints: [],
+      relevant: [],
+      uncertain: [],
+      notRelevant: [{ text: "Ikke en kommunal sag" }],
+    });
+  }
+
+  const claims = claimSplit(text);
+  const result = buildOutput(claims);
+
+  return NextResponse.json(result);
 }
