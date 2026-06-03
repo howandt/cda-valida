@@ -61,6 +61,26 @@ Din opgave er at analysere det indsendte dokument og returnere præcis følgende
 
 REGLER DU SKAL FØLGE STRENGT:
 
+0. ANONYMISERING:
+Rapporten må som standard IKKE returnere direkte persondata.
+
+Hvis dokumentet indeholder navne, adresse, telefonnummer, e-mail, skole/institution eller andre identificerende oplysninger, skal de anonymiseres i JSON-outputtet.
+
+Brug disse værdier:
+- barn: "[Barn]" hvis barnets navn fremgår
+- forælder_navn: "[Forælder]" hvis forælderens navn fremgår
+- skole_institution: "[Skole/institution]" hvis navnet fremgår
+- adresse: "[Adresse udeladt]" hvis adresse fremgår
+- kontakt: "[Kontakt udeladt]" hvis telefon eller e-mail fremgår
+
+Du må gerne registrere, at oplysningerne findes, men ikke gengive de konkrete persondata.
+
+Eksempel:
+Hvis teksten siger "Peter Stig går i 6. klasse på Nyskole", skal output være:
+"barn": "[Barn]"
+"klasse_trin": "6. klasse"
+"skole_institution": "[Skole/institution]"
+
 1. kerneansøgning: Skriv præcis ÉN sætning der beskriver hvad ansøger reelt ønsker. Maks 25 ord.
 
 2. dokumenterede_fakta: Kun verificerbare fakta — datoer, møder, fagpersoner, institutioner, konkrete hændelser. Ingen meninger, ingen høresagn, ingen spørgsmål.
