@@ -133,7 +133,7 @@ export default function ValidaPage() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, type: analysisType, modul: "børn" }),
+        body: JSON.stringify({ text, type: analysisType, modul: "psykiatri" }),
       });
 
       const data = await res.json();
