@@ -106,6 +106,28 @@ Hvis teksten siger "Peter Stig går i 6. klasse på Nyskole", og anonymisering e
 "klasse_trin": "6. klasse"
 "skole_institution": "[Skole/institution]"
 
+Ved anonymiseret rapport skal også navne på fagpersoner anonymiseres.
+
+Eksempel:
+"Brian Nielsen, PPR" skal blive til:
+"[Fagperson], PPR"
+
+Hvis fagpersonens funktion fremgår, må funktionen gerne bevares:
+- PPR
+- skoleleder
+- klasselærer
+- sagsbehandler
+- psykolog
+- støtteperson
+
+Men personnavnet må ikke gengives.
+
+I filtreret_fra må du ikke bruge dømmende ord som "trussel", medmindre teksten direkte indeholder en reel trussel.
+Skriv i stedet neutralt:
+- "Varsel om mulig videre klage"
+- "Kritik af sagsbehandling"
+- "Personlig vurdering af fagperson"
+
 1. kerneansøgning: Skriv præcis ÉN sætning der beskriver hvad ansøger reelt ønsker. Maks 25 ord.
 
 2. dokumenterede_fakta: Kun verificerbare fakta — datoer, møder, fagpersoner, institutioner, konkrete hændelser. Ingen meninger, ingen høresagn, ingen spørgsmål.
