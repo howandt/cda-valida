@@ -34,30 +34,32 @@ type Result = {
 
 const STATUS_CONFIG = {
   verificeret: { label: "✔ Verificeret", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-  usikker:     { label: "⚠ Usikker",     color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+  usikker: { label: "⚠ Usikker", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
   hallucination: { label: "✗ Kan ikke verificeres", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
 };
 
 const TYPE_CONFIG = {
-  klage:       { label: "KLAGE",       color: "#7c3aed", bg: "#f5f3ff" },
-  ansøgning:   { label: "ANSØGNING",   color: "#0369a1", bg: "#f0f9ff" },
+  klage: { label: "KLAGE", color: "#7c3aed", bg: "#f5f3ff" },
+  ansøgning: { label: "ANSØGNING", color: "#0369a1", bg: "#f0f9ff" },
   information: { label: "INFORMATION", color: "#0f766e", bg: "#f0fdfa" },
-  uklar:       { label: "UKLAR",       color: "#6b7280", bg: "#f9fafb" },
+  uklar: { label: "UKLAR", color: "#6b7280", bg: "#f9fafb" },
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: "1.5rem" }}>
-      <div style={{
-        fontSize: "0.65rem",
-        fontWeight: 700,
-        letterSpacing: "0.12em",
-        color: "#6b7280",
-        textTransform: "uppercase",
-        marginBottom: "0.5rem",
-        paddingBottom: "0.25rem",
-        borderBottom: "1px solid #e5e7eb",
-      }}>
+      <div
+        style={{
+          fontSize: "0.65rem",
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+          color: "#6b7280",
+          textTransform: "uppercase",
+          marginBottom: "0.5rem",
+          paddingBottom: "0.25rem",
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
         {title}
       </div>
       {children}
@@ -78,28 +80,30 @@ function PersonRow({ label, value }: { label: string; value: string }) {
 function ParagrafItem({ item }: { item: Paragraf }) {
   const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.usikker;
   return (
-    <div style={{
-      background: cfg.bg,
-      border: `1px solid ${cfg.border}`,
-      borderRadius: "6px",
-      padding: "0.6rem 0.75rem",
-      marginBottom: "0.5rem",
-    }}>
+    <div
+      style={{
+        background: cfg.bg,
+        border: `1px solid ${cfg.border}`,
+        borderRadius: "6px",
+        padding: "0.6rem 0.75rem",
+        marginBottom: "0.5rem",
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
         <span style={{ fontSize: "0.875rem", color: "#1f2937", lineHeight: 1.5 }}>{item.tekst}</span>
-        <span style={{
-          fontSize: "0.7rem",
-          fontWeight: 700,
-          color: cfg.color,
-          whiteSpace: "nowrap",
-          flexShrink: 0,
-        }}>
+        <span
+          style={{
+            fontSize: "0.7rem",
+            fontWeight: 700,
+            color: cfg.color,
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
           {cfg.label}
         </span>
       </div>
-      {item.note && (
-        <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>{item.note}</div>
-      )}
+      {item.note && <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>{item.note}</div>}
     </div>
   );
 }
@@ -109,22 +113,27 @@ export default function ValidaPage() {
   const [type, setType] = useState("ansøgning");
   const [result, setResult] = useState<Result | null>(null);
   const [loading, setLoading] = useState(false);
+  const [activeMode, setActiveMode] = useState<"normal" | "anonym" | null>(null);
   const [error, setError] = useState("");
 
-  async function handleAnalyze() {
+  async function handleAnalyze(mode: "normal" | "anonym" = "normal") {
     if (!text.trim() || text.trim().length < 20) {
       setError("Indsæt venligst tekst inden analyse.");
       return;
     }
+
     setError("");
     setLoading(true);
+    setActiveMode(mode);
     setResult(null);
+
+    const analysisType = mode === "anonym" ? `${type} anonymiseret` : type;
 
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, type, modul: "børn" }),
+        body: JSON.stringify({ text, type: analysisType, modul: "børn" }),
       });
 
       const data = await res.json();
@@ -138,20 +147,22 @@ export default function ValidaPage() {
       setError("Kunne ikke oprette forbindelse til analyse.");
     } finally {
       setLoading(false);
+      setActiveMode(null);
     }
   }
 
-  const typeCfg = result ? (TYPE_CONFIG[result.type] ?? TYPE_CONFIG.uklar) : null;
+  const typeCfg = result ? TYPE_CONFIG[result.type] ?? TYPE_CONFIG.uklar : null;
 
   return (
-    <main style={{
-      minHeight: "100vh",
-      background: "#f3f4f6",
-      fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-      padding: "2rem 1rem",
-    }}>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f3f4f6",
+        fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+        padding: "2rem 1rem",
+      }}
+    >
       <div style={{ maxWidth: "780px", margin: "0 auto" }}>
-
         {/* HEADER */}
         <div style={{ marginBottom: "1.75rem" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", marginBottom: "0.25rem" }}>
@@ -162,21 +173,39 @@ export default function ValidaPage() {
               Struktureringsværktøj · Børn & Familie
             </span>
           </div>
-          <div style={{ height: "2px", background: "linear-gradient(90deg, #1d4ed8, #7c3aed)", borderRadius: "2px", width: "60px" }} />
+          <div
+            style={{
+              height: "2px",
+              background: "linear-gradient(90deg, #1d4ed8, #7c3aed)",
+              borderRadius: "2px",
+              width: "60px",
+            }}
+          />
         </div>
 
         {/* INPUT PANEL */}
-        <div style={{
-          background: "#fff",
-          borderRadius: "12px",
-          padding: "1.5rem",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-          marginBottom: "1.25rem",
-        }}>
-
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "12px",
+            padding: "1.5rem",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+            marginBottom: "1.25rem",
+          }}
+        >
           {/* TYPE SELECTOR */}
           <div style={{ marginBottom: "1rem" }}>
-            <label style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", display: "block", marginBottom: "0.5rem" }}>
+            <label
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                color: "#6b7280",
+                textTransform: "uppercase",
+                display: "block",
+                marginBottom: "0.5rem",
+              }}
+            >
               Dokumenttype
             </label>
             <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -204,7 +233,17 @@ export default function ValidaPage() {
 
           {/* TEXT AREA */}
           <div style={{ marginBottom: "1rem" }}>
-            <label style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", display: "block", marginBottom: "0.5rem" }}>
+            <label
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                color: "#6b7280",
+                textTransform: "uppercase",
+                display: "block",
+                marginBottom: "0.5rem",
+              }}
+            >
               Dokument
             </label>
             <textarea
@@ -227,66 +266,106 @@ export default function ValidaPage() {
             />
           </div>
 
-          {error && (
-            <div style={{ fontSize: "0.8rem", color: "#dc2626", marginBottom: "0.75rem" }}>{error}</div>
-          )}
+          {error && <div style={{ fontSize: "0.8rem", color: "#dc2626", marginBottom: "0.75rem" }}>{error}</div>}
 
-          <button
-            onClick={handleAnalyze}
-            disabled={loading}
-            style={{
-              background: loading ? "#93c5fd" : "#1d4ed8",
-              color: "#fff",
-              padding: "0.55rem 1.5rem",
-              borderRadius: "7px",
-              border: "none",
-              fontWeight: 700,
-              fontSize: "0.875rem",
-              cursor: loading ? "not-allowed" : "pointer",
-              letterSpacing: "0.02em",
-            }}
-          >
-            {loading ? "Analyserer..." : "Analyser dokument"}
-          </button>
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <button
+              onClick={() => handleAnalyze("normal")}
+              disabled={loading}
+              style={{
+                background: loading && activeMode === "normal" ? "#93c5fd" : "#1d4ed8",
+                color: "#fff",
+                padding: "0.55rem 1.5rem",
+                borderRadius: "7px",
+                border: "none",
+                fontWeight: 700,
+                fontSize: "0.875rem",
+                cursor: loading ? "not-allowed" : "pointer",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {loading && activeMode === "normal" ? "Analyserer..." : "Analyser dokument"}
+            </button>
+
+            <button
+              onClick={() => handleAnalyze("anonym")}
+              disabled={loading}
+              style={{
+                background: loading && activeMode === "anonym" ? "#a7f3d0" : "#0f766e",
+                color: "#fff",
+                padding: "0.55rem 1.5rem",
+                borderRadius: "7px",
+                border: "none",
+                fontWeight: 700,
+                fontSize: "0.875rem",
+                cursor: loading ? "not-allowed" : "pointer",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {loading && activeMode === "anonym" ? "Anonymiserer..." : "Lav anonym rapport"}
+            </button>
+          </div>
         </div>
 
         {/* RESULT PANEL */}
         {result && (
-          <div style={{
-            background: "#fff",
-            borderRadius: "12px",
-            padding: "1.75rem",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-          }}>
-
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "12px",
+              padding: "1.75rem",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+            }}
+          >
             {/* TYPE BADGE */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-              <span style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase" }}>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  color: "#6b7280",
+                  textTransform: "uppercase",
+                }}
+              >
                 Valida Rapport · Børn & Familie
               </span>
-              <span style={{
-                background: typeCfg.bg,
-                color: typeCfg.color,
-                fontWeight: 800,
-                fontSize: "0.75rem",
-                letterSpacing: "0.08em",
-                padding: "0.3rem 0.75rem",
-                borderRadius: "5px",
-              }}>
+              <span
+                style={{
+                  background: typeCfg.bg,
+                  color: typeCfg.color,
+                  fontWeight: 800,
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.08em",
+                  padding: "0.3rem 0.75rem",
+                  borderRadius: "5px",
+                }}
+              >
                 {typeCfg.label}
               </span>
             </div>
 
             {/* KERNEANSØGNING */}
             {result.kerneansøgning && (
-              <div style={{
-                background: "#f0f9ff",
-                border: "1.5px solid #bae6fd",
-                borderRadius: "8px",
-                padding: "1rem 1.25rem",
-                marginBottom: "1.75rem",
-              }}>
-                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.12em", color: "#0369a1", textTransform: "uppercase", marginBottom: "0.4rem" }}>
+              <div
+                style={{
+                  background: "#f0f9ff",
+                  border: "1.5px solid #bae6fd",
+                  borderRadius: "8px",
+                  padding: "1rem 1.25rem",
+                  marginBottom: "1.75rem",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.12em",
+                    color: "#0369a1",
+                    textTransform: "uppercase",
+                    marginBottom: "0.4rem",
+                  }}
+                >
                   Kerneansøgning
                 </div>
                 <div style={{ fontSize: "0.95rem", color: "#0c4a6e", fontWeight: 600, lineHeight: 1.5 }}>
@@ -314,7 +393,17 @@ export default function ValidaPage() {
             {result.dokumenterede_fakta?.length > 0 && (
               <Section title="Dokumenterede fakta">
                 {result.dokumenterede_fakta.map((f, i) => (
-                  <div key={i} style={{ fontSize: "0.875rem", color: "#1f2937", marginBottom: "0.35rem", paddingLeft: "0.75rem", borderLeft: "2px solid #e5e7eb", lineHeight: 1.5 }}>
+                  <div
+                    key={i}
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "#1f2937",
+                      marginBottom: "0.35rem",
+                      paddingLeft: "0.75rem",
+                      borderLeft: "2px solid #e5e7eb",
+                      lineHeight: 1.5,
+                    }}
+                  >
                     {f}
                   </div>
                 ))}
@@ -343,14 +432,17 @@ export default function ValidaPage() {
             {result.handlingspunkter?.length > 0 && (
               <Section title="Handlingspunkter">
                 {result.handlingspunkter.map((h, i) => (
-                  <div key={i} style={{
-                    display: "flex",
-                    gap: "0.6rem",
-                    marginBottom: "0.4rem",
-                    alignItems: "flex-start",
-                    fontSize: "0.875rem",
-                    color: "#1f2937",
-                  }}>
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      gap: "0.6rem",
+                      marginBottom: "0.4rem",
+                      alignItems: "flex-start",
+                      fontSize: "0.875rem",
+                      color: "#1f2937",
+                    }}
+                  >
                     <span style={{ color: "#1d4ed8", fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
                     {h}
                   </div>
@@ -368,7 +460,6 @@ export default function ValidaPage() {
                 ))}
               </Section>
             )}
-
           </div>
         )}
       </div>
