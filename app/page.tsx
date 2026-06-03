@@ -69,6 +69,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function PersonRow({ label, value }: { label: string; value: string }) {
   if (!value) return null;
+
   return (
     <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.25rem", fontSize: "0.875rem" }}>
       <span style={{ color: "#6b7280", minWidth: "140px", flexShrink: 0 }}>{label}</span>
@@ -79,6 +80,7 @@ function PersonRow({ label, value }: { label: string; value: string }) {
 
 function ParagrafItem({ item }: { item: Paragraf }) {
   const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.usikker;
+
   return (
     <div
       style={{
@@ -103,7 +105,12 @@ function ParagrafItem({ item }: { item: Paragraf }) {
           {cfg.label}
         </span>
       </div>
-      {item.note && <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>{item.note}</div>}
+
+      {item.note && (
+        <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+          {item.note}
+        </div>
+      )}
     </div>
   );
 }
@@ -111,10 +118,13 @@ function ParagrafItem({ item }: { item: Paragraf }) {
 export default function ValidaPage() {
   const [text, setText] = useState("");
   const [type, setType] = useState("ansøgning");
+  const [modul, setModul] = useState("børn");
   const [result, setResult] = useState<Result | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeMode, setActiveMode] = useState<"normal" | "anonym" | null>(null);
   const [error, setError] = useState("");
+
+  const modulLabel = modul === "psykiatri" ? "Psykiatri" : "Børn & Familie";
 
   async function handleAnalyze(mode: "normal" | "anonym" = "normal") {
     if (!text.trim() || text.trim().length < 20) {
@@ -133,7 +143,7 @@ export default function ValidaPage() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, type: analysisType, modul: "psykiatri" }),
+        body: JSON.stringify({ text, type: analysisType, modul }),
       });
 
       const data = await res.json();
@@ -170,9 +180,10 @@ export default function ValidaPage() {
               VALIDA
             </span>
             <span style={{ fontSize: "0.8rem", color: "#6b7280", fontWeight: 500 }}>
-              Struktureringsværktøj · Børn & Familie
+              Struktureringsværktøj · {modulLabel}
             </span>
           </div>
+
           <div
             style={{
               height: "2px",
@@ -193,6 +204,47 @@ export default function ValidaPage() {
             marginBottom: "1.25rem",
           }}
         >
+          {/* MODULE SELECTOR */}
+          <div style={{ marginBottom: "1rem" }}>
+            <label
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                color: "#6b7280",
+                textTransform: "uppercase",
+                display: "block",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Modul
+            </label>
+
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              {[
+                { key: "børn", label: "Børn & Familie" },
+                { key: "psykiatri", label: "Psykiatri" },
+              ].map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => setModul(m.key)}
+                  style={{
+                    padding: "0.4rem 1rem",
+                    borderRadius: "6px",
+                    border: modul === m.key ? "2px solid #7c3aed" : "2px solid #e5e7eb",
+                    background: modul === m.key ? "#f5f3ff" : "#fff",
+                    color: modul === m.key ? "#7c3aed" : "#6b7280",
+                    fontWeight: modul === m.key ? 700 : 500,
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* TYPE SELECTOR */}
           <div style={{ marginBottom: "1rem" }}>
             <label
@@ -208,7 +260,8 @@ export default function ValidaPage() {
             >
               Dokumenttype
             </label>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               {(["ansøgning", "klage", "information"] as const).map((t) => (
                 <button
                   key={t}
@@ -246,6 +299,7 @@ export default function ValidaPage() {
             >
               Dokument
             </label>
+
             <textarea
               style={{
                 width: "100%",
@@ -260,13 +314,17 @@ export default function ValidaPage() {
                 outline: "none",
                 boxSizing: "border-box",
               }}
-              placeholder="Indsæt ansøgning eller klage her..."
+              placeholder="Indsæt ansøgning, klage eller mødenotat her..."
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
           </div>
 
-          {error && <div style={{ fontSize: "0.8rem", color: "#dc2626", marginBottom: "0.75rem" }}>{error}</div>}
+          {error && (
+            <div style={{ fontSize: "0.8rem", color: "#dc2626", marginBottom: "0.75rem" }}>
+              {error}
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
             <button
@@ -328,8 +386,9 @@ export default function ValidaPage() {
                   textTransform: "uppercase",
                 }}
               >
-                Valida Rapport · Børn & Familie
+                Valida Rapport · {modulLabel}
               </span>
+
               <span
                 style={{
                   background: typeCfg.bg,
@@ -368,6 +427,7 @@ export default function ValidaPage() {
                 >
                   Kerneansøgning
                 </div>
+
                 <div style={{ fontSize: "0.95rem", color: "#0c4a6e", fontWeight: 600, lineHeight: 1.5 }}>
                   {result.kerneansøgning}
                 </div>
@@ -377,11 +437,17 @@ export default function ValidaPage() {
             {/* PERSONDATA */}
             {result.persondata && (
               <Section title="Persondata">
-                <PersonRow label="Barn" value={result.persondata.barn} />
+                <PersonRow label={modul === "psykiatri" ? "Patient" : "Barn"} value={result.persondata.barn} />
                 <PersonRow label="Alder" value={result.persondata.alder} />
                 <PersonRow label="Klasse / trin" value={result.persondata.klasse_trin} />
-                <PersonRow label="Skole / institution" value={result.persondata.skole_institution} />
-                <PersonRow label="Forælder / ansøger" value={result.persondata.forælder_navn} />
+                <PersonRow
+                  label={modul === "psykiatri" ? "Afdeling / klinik" : "Skole / institution"}
+                  value={result.persondata.skole_institution}
+                />
+                <PersonRow
+                  label={modul === "psykiatri" ? "Pårørende / ansøger" : "Forælder / ansøger"}
+                  value={result.persondata.forælder_navn}
+                />
                 <PersonRow label="Adresse" value={result.persondata.adresse} />
                 <PersonRow label="Kontakt" value={result.persondata.kontakt} />
                 <PersonRow label="Diagnose / status" value={result.persondata.diagnose_status} />
